@@ -70,7 +70,7 @@ export default async function HomePage() {
 
             <div className="space-y-5">
               <h1 className="max-w-4xl text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-                Present, explore and measure real interest in each group’s innovation.
+                Rate the BEST innovation proposals!
               </h1>
               <p className="max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
                 Each group will publish its own product. Students will browse

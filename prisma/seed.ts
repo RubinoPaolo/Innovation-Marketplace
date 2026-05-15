@@ -38,12 +38,18 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const DEFAULT_BADGES = [
-  "Eco-friendly",
-  "Low cost",
-  "AI-based",
-  "Made for students",
-  "Social impact",
-  "Prototype ready",
+  "Reduce",
+  "Reuse",
+  "Repair",
+  "Recycle",
+  "Recover",
+  "Redesign",
+  "Social sustainability",
+  "Environmental sustainability",
+  "Codesign",
+  "Modularity",
+  "Innovative materials",
+  "Innovative process",
 ];
 
 function normalizeText(value: string): string {
