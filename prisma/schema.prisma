@@ -1,0 +1,219 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model CourseEdition {
+  id             Int              @id @default(autoincrement())
+  name           String
+  academicYear   String           
+  isActive       Boolean          @default(false)
+  groups         Group[]
+  members        GroupMember[]
+  votingSettings VotingSettings?
+  groupRequests  GroupRequest[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+model Group {
+  id        Int             @id @default(autoincrement())
+  editionId Int?
+  edition   CourseEdition?  @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  name      String
+  slug      String
+  isActive  Boolean         @default(true)
+  members   GroupMember[]
+  product   Product?
+  requests  GroupRequest[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@unique([editionId, name])
+  @@unique([editionId, slug])
+  @@index([editionId])
+  @@index([isActive])
+}
+
+model GroupMember {
+  id                     Int                @id @default(autoincrement())
+  groupId                Int
+  editionId              Int?
+  studentNumber          String
+  isActive               Boolean            @default(true)
+  group                  Group              @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  edition                CourseEdition?     @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  interests              PurchaseInterest[]
+  sessions               StudentSession[]
+  submittedGroupRequests GroupRequest[]     @relation("SubmittedGroupRequests")
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  @@unique([editionId, studentNumber])
+  @@index([groupId])
+  @@index([editionId])
+}
+
+model StudentSession {
+  id         Int         @id @default(autoincrement())
+  memberId   Int
+  token      String      @unique
+  expiresAt  DateTime
+  member     GroupMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([memberId])
+  @@index([expiresAt])
+}
+
+model AdminSession {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+}
+
+model Product {
+  id               Int                @id @default(autoincrement())
+  groupId          Int                @unique
+  categoryId       Int?
+  title            String
+  shortDescription String?
+  description      String?
+  priceCents       Int
+  status           String             @default("DRAFT")
+  group            Group              @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  category         Category?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  images           ProductImage[]
+  features         ProductFeature[]
+  badges           ProductBadge[]
+  interests        PurchaseInterest[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([categoryId])
+  @@index([status])
+}
+
+model ProductImage {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  imageUrl  String
+  altText   String?
+  isCover   Boolean  @default(false)
+  sortOrder Int      @default(0)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model ProductFeature {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  text      String
+  sortOrder Int      @default(0)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  slug      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Badge {
+  id        Int            @id @default(autoincrement())
+  name      String         @unique
+  slug      String         @unique
+  products  ProductBadge[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model ProductBadge {
+  productId Int
+  badgeId   Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([productId, badgeId])
+  @@index([badgeId])
+}
+
+model PurchaseInterest {
+  id        Int         @id @default(autoincrement())
+  productId Int
+  memberId  Int
+  product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  member    GroupMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@unique([productId, memberId])
+  @@index([productId])
+  @@index([memberId])
+}
+
+model VotingSettings {
+  id        Int            @id @default(autoincrement())
+  editionId Int?           @unique
+  edition   CourseEdition? @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  isOpen    Boolean         @default(false)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model GroupRequest {
+  id                  Int                  @id @default(autoincrement())
+  editionId           Int
+  groupId             Int?
+  requestedByMemberId Int?
+  requestType         String
+  requestedGroupName  String?
+  note                String?
+  status              String               @default("PENDING")
+  adminNote           String?
+  reviewedAt          DateTime?
+  edition             CourseEdition        @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  group               Group?               @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  requestedByMember   GroupMember?        @relation("SubmittedGroupRequests", fields: [requestedByMemberId], references: [id], onDelete: SetNull)
+  members             GroupRequestMember[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([editionId])
+  @@index([groupId])
+  @@index([requestedByMemberId])
+  @@index([status])
+  @@index([requestType])
+}
+
+model GroupRequestMember {
+  id            Int          @id @default(autoincrement())
+  requestId     Int
+  studentNumber String
+  action        String
+  request       GroupRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([requestId])
+  @@index([action])
+}
