@@ -4,13 +4,13 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model CourseEdition {
   id             Int              @id @default(autoincrement())
   name           String
-  academicYear   String           
+  academicYear   String
   isActive       Boolean          @default(false)
   groups         Group[]
   members        GroupMember[]

@@ -1,13 +1,18 @@
 import "dotenv/config";
 import * as fs from "node:fs";
 import path from "node:path";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { readFile, set_fs, utils } from "xlsx";
 
 set_fs(fs);
 
-const DATABASE_URL = process.env.DATABASE_URL ?? "file:./dev.db";
+const DATABASE_URL = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  throw new Error("DIRECT_URL or DATABASE_URL is not defined.");
+}
+
 const EXCEL_PATH = path.resolve(
   process.cwd(),
   "data/source/Database_Gruppi_Innovation_Management.xlsx",
@@ -16,7 +21,10 @@ const EXCEL_PATH = path.resolve(
 const CURRENT_EDITION_NAME = "Innovation Management 2026";
 const CURRENT_ACADEMIC_YEAR = "2026";
 
-const adapter = new PrismaBetterSqlite3({ url: DATABASE_URL });
+const adapter = new PrismaNeon({
+  connectionString: DATABASE_URL,
+});
+
 const prisma = new PrismaClient({ adapter });
 
 type RawCell = string | number | boolean | null | undefined;
@@ -138,20 +146,29 @@ function parseGroupsFromExcel(filePath: string): GroupSeed[] {
 }
 
 async function ensureCurrentEdition() {
-  const edition = await prisma.courseEdition.upsert({
+  const existingEdition = await prisma.courseEdition.findFirst({
     where: {
-      academicYear: CURRENT_ACADEMIC_YEAR,
-    },
-    update: {
-      name: CURRENT_EDITION_NAME,
-      isActive: true,
-    },
-    create: {
       name: CURRENT_EDITION_NAME,
       academicYear: CURRENT_ACADEMIC_YEAR,
-      isActive: true,
     },
   });
+
+  const edition = existingEdition
+    ? await prisma.courseEdition.update({
+        where: {
+          id: existingEdition.id,
+        },
+        data: {
+          isActive: true,
+        },
+      })
+    : await prisma.courseEdition.create({
+        data: {
+          name: CURRENT_EDITION_NAME,
+          academicYear: CURRENT_ACADEMIC_YEAR,
+          isActive: true,
+        },
+      });
 
   await prisma.courseEdition.updateMany({
     where: {
