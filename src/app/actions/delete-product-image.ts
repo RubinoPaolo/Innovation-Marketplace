@@ -1,7 +1,6 @@
 'use server';
 
-import { unlink } from "node:fs/promises";
-import path from "node:path";
+import { del } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentStudentSession } from "@/lib/student-session";
@@ -21,18 +20,11 @@ function parseImageId(value: unknown): number | null {
   return imageId;
 }
 
-async function removeStoredFile(imageUrl: string): Promise<void> {
-  if (!imageUrl.startsWith("/uploads/products/")) {
-    return;
-  }
-
-  const relativePath = imageUrl.replace(/^\/+/, "");
-  const absolutePath = path.join(process.cwd(), "public", relativePath);
-
+async function removeStoredBlob(imageUrl: string): Promise<void> {
   try {
-    await unlink(absolutePath);
-  } catch {
-    // The database removal should remain valid even if the local file is already missing.
+    await del(imageUrl);
+  } catch (error) {
+    console.error("Blob deletion failed:", error);
   }
 }
 
@@ -87,7 +79,7 @@ export async function deleteProductImage(
     },
   });
 
-  await removeStoredFile(image.imageUrl);
+  await removeStoredBlob(image.imageUrl);
 
   if (image.isCover) {
     await prisma.productImage.updateMany({

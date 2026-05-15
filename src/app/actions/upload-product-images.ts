@@ -1,8 +1,7 @@
 'use server';
 
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { put } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentStudentSession } from "@/lib/student-session";
@@ -51,7 +50,8 @@ export async function uploadProductImages(
   if (!currentSession) {
     return {
       status: "error",
-      message: "Your session is no longer valid. Return to the homepage and sign in again.",
+      message:
+        "Your session is no longer valid. Return to the homepage and sign in again.",
     };
   }
 
@@ -107,15 +107,6 @@ export async function uploadProductImages(
     }
   }
 
-  const uploadDirectory = path.join(
-    process.cwd(),
-    "public",
-    "uploads",
-    "products",
-  );
-
-  await mkdir(uploadDirectory, { recursive: true });
-
   const hasCoverImage = product.images.some((image) => image.isCover);
   const startingSortOrder =
     product.images.length > 0
@@ -129,37 +120,48 @@ export async function uploadProductImages(
     sortOrder: number;
   }> = [];
 
-  for (const [index, file] of files.entries()) {
-    const extension = getImageExtension(file);
+  try {
+    for (const [index, file] of files.entries()) {
+      const extension = getImageExtension(file);
 
-    if (!extension) {
-      return {
-        status: "error",
-        message: "One of the selected files has an unsupported format.",
-      };
+      if (!extension) {
+        return {
+          status: "error",
+          message: "One of the selected files has an unsupported format.",
+        };
+      }
+
+      const filename = `${product.id}-${Date.now()}-${randomUUID()}.${extension}`;
+      const pathname = `products/${product.id}/${filename}`;
+
+      const blob = await put(pathname, file, {
+        access: "public",
+        contentType: file.type,
+      });
+
+      newImagesData.push({
+        imageUrl: blob.url,
+        altText: `${product.title} product image ${startingSortOrder + index + 1}`,
+        isCover: !hasCoverImage && index === 0,
+        sortOrder: startingSortOrder + index,
+      });
     }
 
-    const filename = `${product.id}-${Date.now()}-${randomUUID()}.${extension}`;
-    const absoluteFilePath = path.join(uploadDirectory, filename);
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    await writeFile(absoluteFilePath, buffer);
-
-    newImagesData.push({
-      imageUrl: `/uploads/products/${filename}`,
-      altText: `${product.title} product image ${startingSortOrder + index + 1}`,
-      isCover: !hasCoverImage && index === 0,
-      sortOrder: startingSortOrder + index,
+    await prisma.productImage.createMany({
+      data: newImagesData.map((image) => ({
+        productId: product.id,
+        ...image,
+      })),
     });
-  }
+  } catch (error) {
+    console.error("Product image upload failed:", error);
 
-  await prisma.productImage.createMany({
-    data: newImagesData.map((image) => ({
-      productId: product.id,
-      ...image,
-    })),
-  });
+    return {
+      status: "error",
+      message:
+        "Image upload failed. Please try again with a smaller file or contact the administrator.",
+    };
+  }
 
   revalidatePath("/area-gruppo/media");
   revalidatePath("/catalogo");
