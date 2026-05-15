@@ -1,29 +1,46 @@
 import "dotenv/config";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "../src/generated/prisma/client";
 
-const DATABASE_URL = process.env.DATABASE_URL ?? "file:./dev.db";
+const DATABASE_URL = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  throw new Error("DIRECT_URL or DATABASE_URL is not defined.");
+}
+
 const CURRENT_EDITION_NAME = "Innovation Management 2026";
 const CURRENT_ACADEMIC_YEAR = "2026";
 
-const adapter = new PrismaBetterSqlite3({ url: DATABASE_URL });
+const adapter = new PrismaNeon({
+  connectionString: DATABASE_URL,
+});
+
 const prisma = new PrismaClient({ adapter });
 
 async function ensureCurrentEdition() {
-  const edition = await prisma.courseEdition.upsert({
+  const existingEdition = await prisma.courseEdition.findFirst({
     where: {
-      academicYear: CURRENT_ACADEMIC_YEAR,
-    },
-    update: {
-      name: CURRENT_EDITION_NAME,
-      isActive: true,
-    },
-    create: {
       name: CURRENT_EDITION_NAME,
       academicYear: CURRENT_ACADEMIC_YEAR,
-      isActive: true,
     },
   });
+
+  const edition = existingEdition
+    ? await prisma.courseEdition.update({
+        where: {
+          id: existingEdition.id,
+        },
+        data: {
+          isActive: true,
+        },
+      })
+    : await prisma.courseEdition.create({
+        data: {
+          name: CURRENT_EDITION_NAME,
+          academicYear: CURRENT_ACADEMIC_YEAR,
+          isActive: true,
+        },
+      });
 
   await prisma.courseEdition.updateMany({
     where: {
@@ -41,42 +58,44 @@ async function ensureCurrentEdition() {
 }
 
 async function attachExistingDataToEdition(editionId: number) {
-  const [groupsUpdate, membersUpdate, votingSettingsUpdate] = await Promise.all([
-    prisma.group.updateMany({
-      where: {
-        editionId: null,
-      },
-      data: {
-        editionId,
-      },
-    }),
-    prisma.groupMember.updateMany({
-      where: {
-        editionId: null,
-      },
-      data: {
-        editionId,
-        isActive: true,
-      },
-    }),
-    prisma.votingSettings.updateMany({
-      where: {
-        editionId: null,
-      },
-      data: {
-        editionId,
-      },
-    }),
-  ]);
+  const [groupsUpdate, membersUpdate, votingSettingsUpdate] =
+    await Promise.all([
+      prisma.group.updateMany({
+        where: {
+          editionId: null,
+        },
+        data: {
+          editionId,
+        },
+      }),
+      prisma.groupMember.updateMany({
+        where: {
+          editionId: null,
+        },
+        data: {
+          editionId,
+          isActive: true,
+        },
+      }),
+      prisma.votingSettings.updateMany({
+        where: {
+          editionId: null,
+        },
+        data: {
+          editionId,
+        },
+      }),
+    ]);
 
-  const existingEditionVotingSettings = await prisma.votingSettings.findUnique({
-    where: {
-      editionId,
-    },
-    select: {
-      id: true,
-    },
-  });
+  const existingEditionVotingSettings =
+    await prisma.votingSettings.findUnique({
+      where: {
+        editionId,
+      },
+      select: {
+        id: true,
+      },
+    });
 
   if (!existingEditionVotingSettings) {
     await prisma.votingSettings.create({
@@ -94,48 +113,56 @@ async function attachExistingDataToEdition(editionId: number) {
   };
 }
 
-async function printSummary(editionId: number, migrationCounts: {
-  updatedGroups: number;
-  updatedMembers: number;
-  updatedVotingSettings: number;
-}) {
-  const [edition, groupsCount, membersCount, activeMembersCount, votingSettings] =
-    await Promise.all([
-      prisma.courseEdition.findUnique({
-        where: {
-          id: editionId,
-        },
-        select: {
-          name: true,
-          academicYear: true,
-          isActive: true,
-        },
-      }),
-      prisma.group.count({
-        where: {
-          editionId,
-        },
-      }),
-      prisma.groupMember.count({
-        where: {
-          editionId,
-        },
-      }),
-      prisma.groupMember.count({
-        where: {
-          editionId,
-          isActive: true,
-        },
-      }),
-      prisma.votingSettings.findUnique({
-        where: {
-          editionId,
-        },
-        select: {
-          isOpen: true,
-        },
-      }),
-    ]);
+async function printSummary(
+  editionId: number,
+  migrationCounts: {
+    updatedGroups: number;
+    updatedMembers: number;
+    updatedVotingSettings: number;
+  },
+) {
+  const [
+    edition,
+    groupsCount,
+    membersCount,
+    activeMembersCount,
+    votingSettings,
+  ] = await Promise.all([
+    prisma.courseEdition.findUnique({
+      where: {
+        id: editionId,
+      },
+      select: {
+        name: true,
+        academicYear: true,
+        isActive: true,
+      },
+    }),
+    prisma.group.count({
+      where: {
+        editionId,
+      },
+    }),
+    prisma.groupMember.count({
+      where: {
+        editionId,
+      },
+    }),
+    prisma.groupMember.count({
+      where: {
+        editionId,
+        isActive: true,
+      },
+    }),
+    prisma.votingSettings.findUnique({
+      where: {
+        editionId,
+      },
+      select: {
+        isOpen: true,
+      },
+    }),
+  ]);
 
   console.log("\nCourse edition backfill completed successfully.");
   console.log(`Edition: ${edition?.name ?? "Unknown"}`);
@@ -149,7 +176,9 @@ async function printSummary(editionId: number, migrationCounts: {
   console.log(`Groups linked to the edition: ${groupsCount}`);
   console.log(`Members linked to the edition: ${membersCount}`);
   console.log(`Active members in the edition: ${activeMembersCount}`);
-  console.log(`Voting status for the edition: ${votingSettings?.isOpen ? "OPEN" : "CLOSED"}`);
+  console.log(
+    `Voting status for the edition: ${votingSettings?.isOpen ? "OPEN" : "CLOSED"}`,
+  );
 }
 
 async function main() {
