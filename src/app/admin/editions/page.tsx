@@ -72,9 +72,9 @@ export default async function AdminEditionsPage() {
             Manage reusable academic editions
           </h1>
           <p className="max-w-3xl text-base leading-8 text-slate-600 sm:text-lg">
-            Create new course cycles and choose which edition is currently active
-            for student access, group requests, catalog visibility and voting
-            operations.
+            Create new course cycles and choose which edition is currently
+            active for student access, group requests, catalog visibility and
+            voting operations.
           </p>
         </div>
 
@@ -217,6 +217,13 @@ export default async function AdminEditionsPage() {
                   </div>
 
                   <div className="flex flex-col items-start gap-3 lg:items-end">
+                    <Link
+                      href={`/admin/editions/${edition.id}`}
+                      className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 text-sm font-bold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-200"
+                    >
+                      Edit edition
+                    </Link>
+
                     <AdminCourseEditionActivateForm
                       editionId={edition.id}
                       editionName={edition.name}

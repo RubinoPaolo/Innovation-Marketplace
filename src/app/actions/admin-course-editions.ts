@@ -16,7 +16,9 @@ function normalizeText(value: FormDataEntryValue | null): string {
   return String(value ?? "").trim().replace(/\s+/g, " ");
 }
 
-function parsePositiveInteger(value: FormDataEntryValue | null): number | null {
+function parsePositiveInteger(
+  value: FormDataEntryValue | null,
+): number | null {
   const parsedValue = Number(String(value ?? "").trim());
 
   if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
@@ -142,6 +144,100 @@ export async function createCourseEdition(
     status: "success",
     message:
       "Course edition created successfully. It is inactive until you activate it.",
+  };
+}
+
+export async function updateCourseEdition(
+  _previousState: AdminCourseEditionActionState,
+  formData: FormData,
+): Promise<AdminCourseEditionActionState> {
+  const adminError = await requireAdminSession();
+
+  if (adminError) {
+    return {
+      status: "error",
+      message: adminError,
+    };
+  }
+
+  const editionId = parsePositiveInteger(formData.get("editionId"));
+  const name = normalizeText(formData.get("name"));
+  const academicYear = normalizeText(formData.get("academicYear"));
+
+  if (!editionId) {
+    return {
+      status: "error",
+      message: "The selected edition is not valid.",
+    };
+  }
+
+  if (!name) {
+    return {
+      status: "error",
+      message: "Enter the course edition name.",
+    };
+  }
+
+  if (!academicYear) {
+    return {
+      status: "error",
+      message: "Enter the academic year.",
+    };
+  }
+
+  const edition = await prisma.courseEdition.findUnique({
+    where: {
+      id: editionId,
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  if (!edition) {
+    return {
+      status: "error",
+      message: "The selected edition no longer exists.",
+    };
+  }
+
+  const conflictingEdition = await prisma.courseEdition.findFirst({
+    where: {
+      name,
+      id: {
+        not: edition.id,
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  if (conflictingEdition) {
+    return {
+      status: "error",
+      message: "Another edition already uses this name.",
+    };
+  }
+
+  await prisma.courseEdition.update({
+    where: {
+      id: edition.id,
+    },
+    data: {
+      name,
+      academicYear,
+    },
+  });
+
+  revalidateEditionAwarePages();
+  revalidatePath(`/admin/editions/${edition.id}`);
+
+  return {
+    status: "success",
+    message: "Course edition updated successfully.",
   };
 }
 
