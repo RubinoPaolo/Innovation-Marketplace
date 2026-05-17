@@ -140,7 +140,7 @@ export function ProductQuestionRatingList({
       </h2>
       <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
         These questions are optional. Each criterion can be evaluated from 1 to
-        5 stars.
+        5 stars based on how much you agree with the statement.
       </p>
 
       <div className="mt-6 grid gap-4">
