@@ -23,6 +23,55 @@ function formatDateTime(date: Date): string {
   }).format(date);
 }
 
+function addSheetTitle(
+  worksheet: ExcelJS.Worksheet,
+  title: string,
+  subtitle: string,
+  lastColumn: string,
+) {
+  worksheet.mergeCells(`A1:${lastColumn}1`);
+  const titleCell = worksheet.getCell("A1");
+  titleCell.value = title;
+  titleCell.font = {
+    bold: true,
+    size: 18,
+    color: { argb: "FFFFFFFF" },
+  };
+  titleCell.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FF0F172A" },
+  };
+  titleCell.alignment = {
+    horizontal: "center",
+    vertical: "middle",
+  };
+  worksheet.getRow(1).height = 30;
+
+  worksheet.mergeCells(`A2:${lastColumn}2`);
+  const subtitleCell = worksheet.getCell("A2");
+  subtitleCell.value = subtitle;
+  subtitleCell.font = {
+    bold: true,
+    size: 12,
+    color: { argb: "FF334155" },
+  };
+  subtitleCell.alignment = {
+    horizontal: "center",
+    vertical: "middle",
+  };
+  worksheet.getRow(2).height = 24;
+}
+
+function applyHeaderWidths(
+  worksheet: ExcelJS.Worksheet,
+  widths: number[],
+) {
+  widths.forEach((width, index) => {
+    worksheet.getColumn(index + 1).width = width;
+  });
+}
+
 export async function GET() {
   const [adminSession, activeEdition] = await Promise.all([
     getCurrentAdminSession(),
@@ -58,12 +107,6 @@ export async function GET() {
   workbook.created = exportData.generatedAt;
   workbook.modified = exportData.generatedAt;
 
-  const darkFill = {
-    type: "pattern" as const,
-    pattern: "solid" as const,
-    fgColor: { argb: "FF0F172A" },
-  };
-
   const softFill = {
     type: "pattern" as const,
     pattern: "solid" as const,
@@ -87,40 +130,32 @@ export async function GET() {
     views: [{ showGridLines: false }],
   });
 
-  summarySheet.mergeCells("A1:H1");
-  const summaryTitle = summarySheet.getCell("A1");
-  summaryTitle.value = "Voting Results Summary";
-  summaryTitle.font = {
-    bold: true,
-    size: 18,
-    color: { argb: "FFFFFFFF" },
-  };
-  summaryTitle.fill = darkFill;
-  summaryTitle.alignment = {
-    horizontal: "center",
-    vertical: "middle",
-  };
-  summarySheet.getRow(1).height = 30;
-
-  summarySheet.mergeCells("A2:H2");
-  const summarySubtitle = summarySheet.getCell("A2");
-  summarySubtitle.value = `Edition: ${exportData.edition.name}`;
-  summarySubtitle.font = {
-    bold: true,
-    size: 12,
-    color: { argb: "FF334155" },
-  };
-  summarySubtitle.alignment = {
-    horizontal: "center",
-    vertical: "middle",
-  };
-  summarySheet.getRow(2).height = 24;
+  addSheetTitle(
+    summarySheet,
+    "Innovation Marketplace Export Summary",
+    `Edition: ${exportData.edition.name}`,
+    "H",
+  );
 
   const metricCells = [
     ["A4", "Active students", "B4", exportData.activeStudents],
     ["D4", "Published products", "E4", exportData.publishedProducts],
-    ["G4", "Recorded interests", "H4", exportData.totalInterests],
-    ["A5", "Generated at", "B5", formatDateTime(exportData.generatedAt)],
+    ["G4", "Generated at", "H4", formatDateTime(exportData.generatedAt)],
+    ["A5", "Yes votes", "B5", exportData.totalYesVotes],
+    ["D5", "No votes", "E5", exportData.totalNoVotes],
+    [
+      "G5",
+      "Feedback responses",
+      "H5",
+      exportData.totalFeedbackResponses,
+    ],
+    ["A6", "Feature ratings", "B6", exportData.totalFeatureRatings],
+    [
+      "D6",
+      "Evaluation ratings",
+      "E6",
+      exportData.totalEvaluationRatings,
+    ],
   ] as const;
 
   for (const [labelCellRef, label, valueCellRef, value] of metricCells) {
@@ -134,9 +169,6 @@ export async function GET() {
     };
     labelCell.fill = softFill;
     labelCell.border = thinBorder;
-    labelCell.alignment = {
-      vertical: "middle",
-    };
 
     valueCell.value = value;
     valueCell.font = {
@@ -146,26 +178,23 @@ export async function GET() {
     };
     valueCell.fill = accentFill;
     valueCell.border = thinBorder;
-    valueCell.alignment = {
-      vertical: "middle",
-    };
   }
 
-  summarySheet.mergeCells("A7:E7");
-  const topTenTitle = summarySheet.getCell("A7");
-  topTenTitle.value = "Top 10 most desired products";
+  summarySheet.mergeCells("A8:F8");
+  const topTenTitle = summarySheet.getCell("A8");
+  topTenTitle.value = "Top 10 products by Yes votes";
   topTenTitle.font = {
     bold: true,
     size: 14,
     color: { argb: "FF0F172A" },
   };
 
-  if (exportData.rows.length > 0) {
-    const topTenRows = exportData.rows.slice(0, 10);
+  const topTenRows = exportData.productSummaryRows.slice(0, 10);
 
+  if (topTenRows.length > 0) {
     summarySheet.addTable({
       name: "TopTenProductsTable",
-      ref: "A9",
+      ref: "A10",
       headerRow: true,
       totalsRow: false,
       style: {
@@ -176,103 +205,50 @@ export async function GET() {
         { name: "Rank", filterButton: true },
         { name: "Product", filterButton: true },
         { name: "Group", filterButton: true },
-        { name: "Interested students", filterButton: true },
-        { name: "Interest rate", filterButton: true },
+        { name: "Yes votes", filterButton: true },
+        { name: "No votes", filterButton: true },
+        { name: "Positive rate", filterButton: true },
       ],
       rows: topTenRows.map((row) => [
         row.rank,
         row.product,
         row.group,
-        row.interestedStudents,
-        row.interestRate,
+        row.yesVotes,
+        row.noVotes,
+        row.positiveRate,
       ]),
     });
 
     for (let index = 0; index < topTenRows.length; index += 1) {
-      const excelRowNumber = 10 + index;
-      summarySheet.getCell(`E${excelRowNumber}`).numFmt = "0.00%";
+      const excelRowNumber = 11 + index;
+      summarySheet.getCell(`F${excelRowNumber}`).numFmt = "0.00%";
     }
   } else {
-    summarySheet.getCell("A9").value =
-      "No published products are available for export.";
-    summarySheet.getCell("A9").font = {
+    summarySheet.getCell("A10").value =
+      "No product summary rows are available.";
+    summarySheet.getCell("A10").font = {
       italic: true,
       color: { argb: "FF64748B" },
     };
   }
 
-  summarySheet.getColumn(1).width = 18;
-  summarySheet.getColumn(2).width = 32;
-  summarySheet.getColumn(3).width = 6;
-  summarySheet.getColumn(4).width = 24;
-  summarySheet.getColumn(5).width = 18;
-  summarySheet.getColumn(6).width = 6;
-  summarySheet.getColumn(7).width = 24;
-  summarySheet.getColumn(8).width = 18;
+  applyHeaderWidths(summarySheet, [16, 34, 28, 18, 18, 18, 22, 22]);
 
-  const resultsSheet = workbook.addWorksheet("Voting Results", {
-    views: [{ state: "frozen", ySplit: 7, showGridLines: false }],
+  const productSummarySheet = workbook.addWorksheet("Product Summary", {
+    views: [{ state: "frozen", ySplit: 4, showGridLines: false }],
   });
 
-  resultsSheet.mergeCells("A1:H1");
-  const resultsTitle = resultsSheet.getCell("A1");
-  resultsTitle.value = "Detailed Voting Results";
-  resultsTitle.font = {
-    bold: true,
-    size: 18,
-    color: { argb: "FFFFFFFF" },
-  };
-  resultsTitle.fill = darkFill;
-  resultsTitle.alignment = {
-    horizontal: "center",
-    vertical: "middle",
-  };
-  resultsSheet.getRow(1).height = 30;
+  addSheetTitle(
+    productSummarySheet,
+    "Product Summary",
+    `Edition: ${exportData.edition.name}`,
+    "M",
+  );
 
-  resultsSheet.mergeCells("A2:H2");
-  const resultsSubtitle = resultsSheet.getCell("A2");
-  resultsSubtitle.value = `Edition: ${exportData.edition.name}`;
-  resultsSubtitle.font = {
-    bold: true,
-    size: 12,
-    color: { argb: "FF334155" },
-  };
-  resultsSubtitle.alignment = {
-    horizontal: "center",
-    vertical: "middle",
-  };
-
-  const metaRows = [
-    ["A4", "Active students", "B4", exportData.activeStudents],
-    ["D4", "Published products", "E4", exportData.publishedProducts],
-    ["G4", "Recorded interests", "H4", exportData.totalInterests],
-  ] as const;
-
-  for (const [labelCellRef, label, valueCellRef, value] of metaRows) {
-    const labelCell = resultsSheet.getCell(labelCellRef);
-    const valueCell = resultsSheet.getCell(valueCellRef);
-
-    labelCell.value = label;
-    labelCell.font = {
-      bold: true,
-      color: { argb: "FF475569" },
-    };
-    labelCell.fill = softFill;
-    labelCell.border = thinBorder;
-
-    valueCell.value = value;
-    valueCell.font = {
-      bold: true,
-      color: { argb: "FF0F172A" },
-    };
-    valueCell.fill = accentFill;
-    valueCell.border = thinBorder;
-  }
-
-  if (exportData.rows.length > 0) {
-    resultsSheet.addTable({
-      name: "VotingResultsTable",
-      ref: "A7",
+  if (exportData.productSummaryRows.length > 0) {
+    productSummarySheet.addTable({
+      name: "ProductSummaryTable",
+      ref: "A4",
       headerRow: true,
       totalsRow: false,
       style: {
@@ -281,86 +257,221 @@ export async function GET() {
       },
       columns: [
         { name: "Rank", filterButton: true },
+        { name: "Product ID", filterButton: true },
         { name: "Product", filterButton: true },
         { name: "Group", filterButton: true },
         { name: "Category", filterButton: true },
         { name: "Price EUR", filterButton: true },
-        { name: "Interested students", filterButton: true },
-        { name: "Interest rate", filterButton: true },
         { name: "Publication status", filterButton: true },
+        { name: "Yes votes", filterButton: true },
+        { name: "No votes", filterButton: true },
+        { name: "Feedback responses", filterButton: true },
+        { name: "Positive rate", filterButton: true },
+        { name: "Feature ratings", filterButton: true },
+        { name: "Evaluation ratings", filterButton: true },
       ],
-      rows: exportData.rows.map((row) => [
+      rows: exportData.productSummaryRows.map((row) => [
         row.rank,
+        row.productId,
         row.product,
         row.group,
         row.category,
         row.priceCents / 100,
-        row.interestedStudents,
-        row.interestRate,
         row.publicationStatus,
+        row.yesVotes,
+        row.noVotes,
+        row.feedbackResponses,
+        row.positiveRate,
+        row.featureRatingsCount,
+        row.evaluationRatingsCount,
       ]),
     });
 
-    for (let index = 0; index < exportData.rows.length; index += 1) {
-      const excelRowNumber = 8 + index;
-
-      resultsSheet.getCell(`E${excelRowNumber}`).numFmt = '"€"#,##0.00';
-      resultsSheet.getCell(`G${excelRowNumber}`).numFmt = "0.00%";
-
-      resultsSheet.getCell(`A${excelRowNumber}`).alignment = {
-        horizontal: "center",
-      };
-      resultsSheet.getCell(`E${excelRowNumber}`).alignment = {
-        horizontal: "right",
-      };
-      resultsSheet.getCell(`F${excelRowNumber}`).alignment = {
-        horizontal: "center",
-      };
-      resultsSheet.getCell(`G${excelRowNumber}`).alignment = {
-        horizontal: "center",
-      };
-
-      if (index === 0) {
-        resultsSheet.getCell(`A${excelRowNumber}`).fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: "FFFFE08A" },
-        };
-      }
-
-      if (index === 1) {
-        resultsSheet.getCell(`A${excelRowNumber}`).fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: "FFE5E7EB" },
-        };
-      }
-
-      if (index === 2) {
-        resultsSheet.getCell(`A${excelRowNumber}`).fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: "FFF4C7AB" },
-        };
-      }
+    for (
+      let index = 0;
+      index < exportData.productSummaryRows.length;
+      index += 1
+    ) {
+      const excelRowNumber = 5 + index;
+      productSummarySheet.getCell(`F${excelRowNumber}`).numFmt =
+        '"€"#,##0.00';
+      productSummarySheet.getCell(`K${excelRowNumber}`).numFmt = "0.00%";
     }
   } else {
-    resultsSheet.getCell("A7").value =
-      "No published products are available for export.";
-    resultsSheet.getCell("A7").font = {
-      italic: true,
-      color: { argb: "FF64748B" },
-    };
+    productSummarySheet.getCell("A4").value =
+      "No product summary rows are available.";
   }
 
-  resultsSheet.getColumn(1).width = 10;
-  resultsSheet.getColumn(2).width = 34;
-  resultsSheet.getColumn(3).width = 28;
-  resultsSheet.getColumn(4).width = 22;
-  resultsSheet.getColumn(5).width = 16;
-  resultsSheet.getColumn(6).width = 22;
-  resultsSheet.getColumn(7).width = 16;
-  resultsSheet.getColumn(8).width = 20;
+  applyHeaderWidths(productSummarySheet, [
+    10, 12, 36, 28, 22, 16, 20, 14, 14, 20, 16, 18, 20,
+  ]);
+
+  const feedbackSheet = workbook.addWorksheet("Product Feedback", {
+    views: [{ state: "frozen", ySplit: 4, showGridLines: false }],
+  });
+
+  addSheetTitle(
+    feedbackSheet,
+    "Product Feedback",
+    `Edition: ${exportData.edition.name}`,
+    "I",
+  );
+
+  if (exportData.productFeedbackRows.length > 0) {
+    feedbackSheet.addTable({
+      name: "ProductFeedbackTable",
+      ref: "A4",
+      headerRow: true,
+      totalsRow: false,
+      style: {
+        theme: "TableStyleMedium2",
+        showRowStripes: true,
+      },
+      columns: [
+        { name: "Feedback ID", filterButton: true },
+        { name: "Product ID", filterButton: true },
+        { name: "Product", filterButton: true },
+        { name: "Group", filterButton: true },
+        { name: "Category", filterButton: true },
+        { name: "Student number", filterButton: true },
+        { name: "Decision", filterButton: true },
+        { name: "Reason", filterButton: true },
+        { name: "Created at", filterButton: true },
+      ],
+      rows: exportData.productFeedbackRows.map((row) => [
+        row.feedbackId,
+        row.productId,
+        row.product,
+        row.group,
+        row.category,
+        row.studentNumber,
+        row.decision,
+        row.reason,
+        formatDateTime(row.createdAt),
+      ]),
+    });
+  } else {
+    feedbackSheet.getCell("A4").value =
+      "No product feedback rows are available.";
+  }
+
+  applyHeaderWidths(feedbackSheet, [
+    14, 12, 36, 28, 22, 18, 14, 60, 24,
+  ]);
+
+  const featureRatingsSheet = workbook.addWorksheet("Feature Ratings", {
+    views: [{ state: "frozen", ySplit: 4, showGridLines: false }],
+  });
+
+  addSheetTitle(
+    featureRatingsSheet,
+    "Feature Ratings",
+    `Edition: ${exportData.edition.name}`,
+    "K",
+  );
+
+  if (exportData.featureRatingRows.length > 0) {
+    featureRatingsSheet.addTable({
+      name: "FeatureRatingsTable",
+      ref: "A4",
+      headerRow: true,
+      totalsRow: false,
+      style: {
+        theme: "TableStyleMedium2",
+        showRowStripes: true,
+      },
+      columns: [
+        { name: "Rating ID", filterButton: true },
+        { name: "Product ID", filterButton: true },
+        { name: "Product", filterButton: true },
+        { name: "Group", filterButton: true },
+        { name: "Category", filterButton: true },
+        { name: "Feature ID", filterButton: true },
+        { name: "Feature", filterButton: true },
+        { name: "Student number", filterButton: true },
+        { name: "Rating", filterButton: true },
+        { name: "Created at", filterButton: true },
+        { name: "Updated at", filterButton: true },
+      ],
+      rows: exportData.featureRatingRows.map((row) => [
+        row.ratingId,
+        row.productId,
+        row.product,
+        row.group,
+        row.category,
+        row.featureId,
+        row.feature,
+        row.studentNumber,
+        row.rating,
+        formatDateTime(row.createdAt),
+        formatDateTime(row.updatedAt),
+      ]),
+    });
+  } else {
+    featureRatingsSheet.getCell("A4").value =
+      "No feature rating rows are available.";
+  }
+
+  applyHeaderWidths(featureRatingsSheet, [
+    12, 12, 36, 28, 22, 12, 56, 18, 12, 24, 24,
+  ]);
+
+  const evaluationRatingsSheet = workbook.addWorksheet("Evaluation Ratings", {
+    views: [{ state: "frozen", ySplit: 4, showGridLines: false }],
+  });
+
+  addSheetTitle(
+    evaluationRatingsSheet,
+    "Evaluation Question Ratings",
+    `Edition: ${exportData.edition.name}`,
+    "K",
+  );
+
+  if (exportData.evaluationRatingRows.length > 0) {
+    evaluationRatingsSheet.addTable({
+      name: "EvaluationRatingsTable",
+      ref: "A4",
+      headerRow: true,
+      totalsRow: false,
+      style: {
+        theme: "TableStyleMedium2",
+        showRowStripes: true,
+      },
+      columns: [
+        { name: "Rating ID", filterButton: true },
+        { name: "Product ID", filterButton: true },
+        { name: "Product", filterButton: true },
+        { name: "Group", filterButton: true },
+        { name: "Category", filterButton: true },
+        { name: "Question key", filterButton: true },
+        { name: "Evaluation question", filterButton: true },
+        { name: "Student number", filterButton: true },
+        { name: "Rating", filterButton: true },
+        { name: "Created at", filterButton: true },
+        { name: "Updated at", filterButton: true },
+      ],
+      rows: exportData.evaluationRatingRows.map((row) => [
+        row.ratingId,
+        row.productId,
+        row.product,
+        row.group,
+        row.category,
+        row.questionKey,
+        row.questionPrompt,
+        row.studentNumber,
+        row.rating,
+        formatDateTime(row.createdAt),
+        formatDateTime(row.updatedAt),
+      ]),
+    });
+  } else {
+    evaluationRatingsSheet.getCell("A4").value =
+      "No evaluation rating rows are available.";
+  }
+
+  applyHeaderWidths(evaluationRatingsSheet, [
+    12, 12, 36, 28, 22, 28, 72, 18, 12, 24, 24,
+  ]);
 
   const workbookBuffer = Buffer.from(await workbook.xlsx.writeBuffer());
 
@@ -372,7 +483,7 @@ export async function GET() {
     headers: {
       "Content-Type":
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="voting-results-${fileSafeEditionName}.xlsx"`,
+      "Content-Disposition": `attachment; filename="complete-voting-data-${fileSafeEditionName}.xlsx"`,
       "Cache-Control": "no-store",
     },
   });

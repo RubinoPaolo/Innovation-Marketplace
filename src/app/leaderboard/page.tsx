@@ -19,9 +19,9 @@ type RankedProduct = {
     imageUrl: string;
     altText: string | null;
   }>;
-  _count: {
-    interests: number;
-  };
+  interests: Array<{
+    id: number;
+  }>;
 };
 
 function formatPrice(priceCents: number): string {
@@ -31,15 +31,12 @@ function formatPrice(priceCents: number): string {
   }).format(priceCents / 100);
 }
 
-function formatPercentage(
-  interestedCount: number,
-  totalStudents: number,
-): string {
+function formatPercentage(yesCount: number, totalStudents: number): string {
   if (totalStudents <= 0) {
     return "0%";
   }
 
-  const percentage = (interestedCount / totalStudents) * 100;
+  const percentage = (yesCount / totalStudents) * 100;
 
   return (
     new Intl.NumberFormat("en-GB", {
@@ -50,11 +47,11 @@ function formatPercentage(
 
 function rankProducts(products: RankedProduct[]): RankedProduct[] {
   return [...products].sort((firstProduct, secondProduct) => {
-    const interestDifference =
-      secondProduct._count.interests - firstProduct._count.interests;
+    const yesVoteDifference =
+      secondProduct.interests.length - firstProduct.interests.length;
 
-    if (interestDifference !== 0) {
-      return interestDifference;
+    if (yesVoteDifference !== 0) {
+      return yesVoteDifference;
     }
 
     return firstProduct.title.localeCompare(secondProduct.title, "en");
@@ -87,7 +84,7 @@ export default async function LeaderboardPage() {
     redirect("/");
   }
 
-  const [products, totalStudents, totalInterests] = await Promise.all([
+  const [products, totalStudents, totalYesVotes] = await Promise.all([
     prisma.product.findMany({
       where: {
         status: "PUBLISHED",
@@ -122,9 +119,12 @@ export default async function LeaderboardPage() {
           },
           take: 1,
         },
-        _count: {
+        interests: {
+          where: {
+            decision: "YES",
+          },
           select: {
-            interests: true,
+            id: true,
           },
         },
       },
@@ -137,6 +137,7 @@ export default async function LeaderboardPage() {
     }),
     prisma.purchaseInterest.count({
       where: {
+        decision: "YES",
         product: {
           group: {
             editionId: activeEdition.id,
@@ -161,12 +162,11 @@ export default async function LeaderboardPage() {
               Leaderboard · {activeEdition.name}
             </p>
             <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
-              Most desired products
+              Most positively rated products
             </h1>
             <p className="max-w-3xl text-base leading-8 text-slate-600 sm:text-lg">
               The leaderboard ranks published products of the active course
-              edition according to the number of students who indicated that
-              they would buy them.
+              edition according to the number of students who selected Yes.
             </p>
           </div>
 
@@ -182,10 +182,10 @@ export default async function LeaderboardPage() {
 
             <article className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
               <p className="text-sm font-semibold text-slate-500">
-                Purchase-interest votes
+                Yes votes
               </p>
               <p className="mt-3 text-3xl font-black text-slate-950">
-                {totalInterests}
+                {totalYesVotes}
               </p>
             </article>
 
@@ -237,7 +237,7 @@ export default async function LeaderboardPage() {
                     Top 3
                   </p>
                   <h2 className="text-2xl font-black tracking-tight text-slate-950">
-                    Products with the strongest purchase interest
+                    Products with the strongest positive feedback
                   </h2>
                 </div>
 
@@ -245,6 +245,7 @@ export default async function LeaderboardPage() {
                   {podiumProducts.map((product, index) => {
                     const coverImage = product.images[0];
                     const rank = index + 1;
+                    const yesVotes = product.interests.length;
 
                     return (
                       <article
@@ -277,7 +278,7 @@ export default async function LeaderboardPage() {
                               {getRankLabel(rank)} place
                             </span>
                             <span className="text-sm font-black text-slate-700">
-                              {product._count.interests} interested
+                              {yesVotes} yes vote{yesVotes === 1 ? "" : "s"}
                             </span>
                           </div>
 
@@ -305,13 +306,10 @@ export default async function LeaderboardPage() {
 
                             <div>
                               <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                                Interest share
+                                Yes share
                               </p>
                               <p className="mt-2 text-base font-black text-slate-950">
-                                {formatPercentage(
-                                  product._count.interests,
-                                  totalStudents,
-                                )}
+                                {formatPercentage(yesVotes, totalStudents)}
                               </p>
                             </div>
                           </div>
@@ -336,6 +334,7 @@ export default async function LeaderboardPage() {
                   {rankedProducts.map((product, index) => {
                     const coverImage = product.images[0];
                     const rank = index + 1;
+                    const yesVotes = product.interests.length;
 
                     return (
                       <article
@@ -394,22 +393,19 @@ export default async function LeaderboardPage() {
                         <div className="grid gap-3 sm:grid-cols-3 md:min-w-[300px]">
                           <div className="rounded-2xl bg-white p-4">
                             <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                              Interested
+                              Yes votes
                             </p>
                             <p className="mt-2 text-lg font-black text-slate-950">
-                              {product._count.interests}
+                              {yesVotes}
                             </p>
                           </div>
 
                           <div className="rounded-2xl bg-white p-4">
                             <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                              Interest share
+                              Yes share
                             </p>
                             <p className="mt-2 text-lg font-black text-slate-950">
-                              {formatPercentage(
-                                product._count.interests,
-                                totalStudents,
-                              )}
+                              {formatPercentage(yesVotes, totalStudents)}
                             </p>
                           </div>
 

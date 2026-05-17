@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { FeatureRatingList } from "@/components/feature-rating-list";
+import { ProductQuestionRatingList } from "@/components/product-question-rating-list";
 import { PurchaseInterestPanel } from "@/components/purchase-interest-panel";
 import { SiteHeader } from "@/components/site-header";
 import { prisma } from "@/lib/prisma";
@@ -13,21 +15,26 @@ function formatPrice(priceCents: number): string {
   }).format(priceCents / 100);
 }
 
-function formatPercentage(
-  interestedCount: number,
-  totalStudents: number,
-): string {
+function formatPercentage(yesCount: number, totalStudents: number): string {
   if (totalStudents <= 0) {
     return "0%";
   }
 
-  const percentage = (interestedCount / totalStudents) * 100;
+  const percentage = (yesCount / totalStudents) * 100;
 
   return (
     new Intl.NumberFormat("en-GB", {
       maximumFractionDigits: 1,
     }).format(percentage) + "%"
   );
+}
+
+function formatFeedbackDate(date: Date): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
 }
 
 type ProductDetailPageProps = {
@@ -55,87 +62,126 @@ export default async function ProductDetailPage({
     notFound();
   }
 
-  const [product, totalStudents, votingSettings, existingInterest] =
-    await Promise.all([
-      prisma.product.findFirst({
-        where: {
-          id: parsedProductId,
-          status: "PUBLISHED",
-          group: {
-            editionId: activeEdition.id,
+  const [
+    product,
+    totalStudents,
+    votingSettings,
+    existingInterest,
+    evaluationQuestions,
+  ] = await Promise.all([
+    prisma.product.findFirst({
+      where: {
+        id: parsedProductId,
+        status: "PUBLISHED",
+        group: {
+          editionId: activeEdition.id,
+        },
+      },
+      include: {
+        group: {
+          select: {
+            name: true,
           },
         },
-        include: {
-          group: {
-            select: {
-              name: true,
-            },
+        category: {
+          select: {
+            name: true,
           },
-          category: {
-            select: {
-              name: true,
-            },
-          },
-          badges: {
-            include: {
-              badge: {
-                select: {
-                  name: true,
-                },
+        },
+        badges: {
+          include: {
+            badge: {
+              select: {
+                name: true,
               },
             },
           },
-          images: {
-            select: {
-              id: true,
-              imageUrl: true,
-              altText: true,
-              isCover: true,
-            },
-            orderBy: [{ isCover: "desc" }, { sortOrder: "asc" }],
+        },
+        images: {
+          select: {
+            id: true,
+            imageUrl: true,
+            altText: true,
+            isCover: true,
           },
-          features: {
-            select: {
-              id: true,
-              text: true,
-            },
-            orderBy: {
-              sortOrder: "asc",
-            },
-          },
-          _count: {
-            select: {
-              interests: true,
+          orderBy: [{ isCover: "desc" }, { sortOrder: "asc" }],
+        },
+        features: {
+          select: {
+            id: true,
+            text: true,
+            ratings: {
+              select: {
+                rating: true,
+                memberId: true,
+              },
             },
           },
+          orderBy: {
+            sortOrder: "asc",
+          },
         },
-      }),
-      prisma.groupMember.count({
-        where: {
-          editionId: activeEdition.id,
-          isActive: true,
+        interests: {
+          select: {
+            id: true,
+            decision: true,
+            reason: true,
+            createdAt: true,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
         },
-      }),
-      prisma.votingSettings.findUnique({
-        where: {
-          editionId: activeEdition.id,
+      },
+    }),
+    prisma.groupMember.count({
+      where: {
+        editionId: activeEdition.id,
+        isActive: true,
+      },
+    }),
+    prisma.votingSettings.findUnique({
+      where: {
+        editionId: activeEdition.id,
+      },
+      select: {
+        isOpen: true,
+      },
+    }),
+    prisma.purchaseInterest.findUnique({
+      where: {
+        productId_memberId: {
+          productId: parsedProductId,
+          memberId: currentSession.member.id,
         },
-        select: {
-          isOpen: true,
-        },
-      }),
-      prisma.purchaseInterest.findUnique({
-        where: {
-          productId_memberId: {
+      },
+      select: {
+        decision: true,
+        reason: true,
+      },
+    }),
+    prisma.evaluationQuestion.findMany({
+      where: {
+        isActive: true,
+      },
+      select: {
+        id: true,
+        prompt: true,
+        ratings: {
+          where: {
             productId: parsedProductId,
-            memberId: currentSession.member.id,
+          },
+          select: {
+            rating: true,
+            memberId: true,
           },
         },
-        select: {
-          id: true,
-        },
-      }),
-    ]);
+      },
+      orderBy: {
+        sortOrder: "asc",
+      },
+    }),
+  ]);
 
   if (!product) {
     notFound();
@@ -144,8 +190,77 @@ export default async function ProductDetailPage({
   const coverImage =
     product.images.find((image) => image.isCover) ?? product.images[0];
 
-  const interestedCount = product._count.interests;
+  const yesCount = product.interests.filter(
+    (interest) => interest.decision === "YES",
+  ).length;
+
+  const noCount = product.interests.filter(
+    (interest) => interest.decision === "NO",
+  ).length;
+
   const votingOpen = votingSettings?.isOpen ?? false;
+
+  const existingDecision =
+    existingInterest?.decision === "YES" ||
+    existingInterest?.decision === "NO"
+      ? existingInterest.decision
+      : null;
+
+  const featureRatings = product.features.map((feature) => {
+    const ratingCount = feature.ratings.length;
+    const averageRating =
+      ratingCount > 0
+        ? Number(
+            (
+              feature.ratings.reduce(
+                (sum, rating) => sum + rating.rating,
+                0,
+              ) / ratingCount
+            ).toFixed(1),
+          )
+        : null;
+
+    const currentRating =
+      feature.ratings.find(
+        (rating) => rating.memberId === currentSession.member.id,
+      )?.rating ?? null;
+
+    return {
+      id: feature.id,
+      text: feature.text,
+      averageRating,
+      ratingCount,
+      currentRating,
+    };
+  });
+
+  const productQuestionRatings = evaluationQuestions.map((question) => {
+    const ratingCount = question.ratings.length;
+    const averageRating =
+      ratingCount > 0
+        ? Number(
+            (
+              question.ratings.reduce(
+                (sum, rating) => sum + rating.rating,
+                0,
+              ) / ratingCount
+            ).toFixed(1),
+          )
+        : null;
+
+    const currentRating =
+      question.ratings.find(
+        (rating) => rating.memberId === currentSession.member.id,
+      )?.rating ?? null;
+
+    return {
+      id: question.id,
+      prompt: question.prompt,
+      averageRating,
+      ratingCount,
+      currentRating,
+    };
+  });
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-950">
@@ -251,22 +366,31 @@ export default async function ProductDetailPage({
               ) : null}
             </section>
 
-            <section className="grid gap-4 sm:grid-cols-2">
+            <section className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
                 <p className="text-sm font-semibold text-slate-500">
-                  Interested students
+                  Yes votes
                 </p>
                 <p className="mt-3 text-4xl font-black text-slate-950">
-                  {interestedCount}
+                  {yesCount}
                 </p>
               </div>
 
               <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
                 <p className="text-sm font-semibold text-slate-500">
-                  Share of active students
+                  No votes
                 </p>
                 <p className="mt-3 text-4xl font-black text-slate-950">
-                  {formatPercentage(interestedCount, totalStudents)}
+                  {noCount}
+                </p>
+              </div>
+
+              <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+                <p className="text-sm font-semibold text-slate-500">
+                  Positive share
+                </p>
+                <p className="mt-3 text-4xl font-black text-slate-950">
+                  {formatPercentage(yesCount, totalStudents)}
                 </p>
               </div>
             </section>
@@ -289,26 +413,16 @@ export default async function ProductDetailPage({
               </section>
             ) : null}
 
-            {product.features.length > 0 ? (
-              <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-                <p className="text-sm font-black uppercase tracking-[0.22em] text-slate-500">
-                  Main features
-                </p>
-                <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-950">
-                  What stands out
-                </h2>
-                <ul className="mt-5 grid gap-3">
-                  {product.features.map((feature) => (
-                    <li
-                      key={feature.id}
-                      className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold leading-7 text-slate-800"
-                    >
-                      {feature.text}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
+            <FeatureRatingList
+              features={featureRatings}
+              votingOpen={votingOpen}
+            />
+
+            <ProductQuestionRatingList
+              productId={product.id}
+              questions={productQuestionRatings}
+              votingOpen={votingOpen}
+            />
           </div>
 
           <PurchaseInterestPanel
@@ -317,11 +431,68 @@ export default async function ProductDetailPage({
             initialState={{
               status: "idle",
               message: "",
-              isInterested: Boolean(existingInterest),
-              interestedCount,
+              decision: existingDecision,
+              reason: existingInterest?.reason ?? "",
+              yesCount,
+              noCount,
               votingOpen,
             }}
           />
+        </section>
+
+        <section className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <p className="text-sm font-black uppercase tracking-[0.22em] text-slate-500">
+            Student feedback
+          </p>
+          <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-950">
+            What classmates say about this product
+          </h2>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
+            Every response includes a Yes or No decision. The explanation is
+            optional, like a short review.
+          </p>
+
+          {product.interests.length === 0 ? (
+            <div className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm font-semibold leading-7 text-slate-600">
+              No feedback has been submitted yet.
+            </div>
+          ) : (
+            <div className="mt-6 grid gap-4">
+              {product.interests.map((interest, index) => (
+                <article
+                  key={interest.id}
+                  className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-black ${
+                          interest.decision === "YES"
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-rose-100 text-rose-800"
+                        }`}
+                      >
+                        {interest.decision === "YES" ? "Yes" : "No"}
+                      </span>
+                      <span className="text-sm font-bold text-slate-700">
+                        Feedback #{product.interests.length - index}
+                      </span>
+                    </div>
+
+                    <time className="text-sm font-semibold text-slate-500">
+                      {formatFeedbackDate(interest.createdAt)}
+                    </time>
+                  </div>
+
+                  <p className="mt-4 text-sm leading-7 text-slate-700">
+                    {interest.reason?.trim()
+                      ? interest.reason
+                      : "No written explanation was provided."}
+                  </p>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
       </main>
     </div>

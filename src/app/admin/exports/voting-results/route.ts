@@ -27,6 +27,14 @@ function formatPercentage(rate: number): string {
   return (rate * 100).toFixed(2);
 }
 
+function formatDateTime(date: Date | null | undefined): string {
+  if (!date) {
+    return "";
+  }
+
+  return date.toISOString();
+}
+
 function buildFileSafeName(value: string): string {
   return value
     .trim()
@@ -66,28 +74,150 @@ export async function GET() {
     name: activeEdition.name,
   });
 
-  const csvRows = [
+  const csvRows: Array<Array<string | number>> = [
     [
+      "Record type",
       "Rank",
+      "Product ID",
       "Product",
       "Group",
       "Category",
       "Price EUR",
-      "Interested students",
-      "Interest rate %",
       "Publication status",
+      "Yes votes",
+      "No votes",
+      "Feedback responses",
+      "Positive rate %",
+      "Feature ratings count",
+      "Evaluation ratings count",
+      "Student number",
+      "Decision",
+      "Reason",
+      "Feature ID",
+      "Feature",
+      "Evaluation question key",
+      "Evaluation question",
+      "Rating",
+      "Created at",
+      "Updated at",
     ],
-    ...exportData.rows.map((row) => [
+  ];
+
+  for (const row of exportData.productSummaryRows) {
+    csvRows.push([
+      "PRODUCT_SUMMARY",
       row.rank,
+      row.productId,
       row.product,
       row.group,
       row.category,
       formatPrice(row.priceCents),
-      row.interestedStudents,
-      formatPercentage(row.interestRate),
       row.publicationStatus,
-    ]),
-  ];
+      row.yesVotes,
+      row.noVotes,
+      row.feedbackResponses,
+      formatPercentage(row.positiveRate),
+      row.featureRatingsCount,
+      row.evaluationRatingsCount,
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+    ]);
+  }
+
+  for (const row of exportData.productFeedbackRows) {
+    csvRows.push([
+      "PRODUCT_FEEDBACK",
+      "",
+      row.productId,
+      row.product,
+      row.group,
+      row.category,
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      row.studentNumber,
+      row.decision,
+      row.reason,
+      "",
+      "",
+      "",
+      "",
+      "",
+      formatDateTime(row.createdAt),
+      "",
+    ]);
+  }
+
+  for (const row of exportData.featureRatingRows) {
+    csvRows.push([
+      "FEATURE_RATING",
+      "",
+      row.productId,
+      row.product,
+      row.group,
+      row.category,
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      row.studentNumber,
+      "",
+      "",
+      row.featureId,
+      row.feature,
+      "",
+      "",
+      row.rating,
+      formatDateTime(row.createdAt),
+      formatDateTime(row.updatedAt),
+    ]);
+  }
+
+  for (const row of exportData.evaluationRatingRows) {
+    csvRows.push([
+      "EVALUATION_RATING",
+      "",
+      row.productId,
+      row.product,
+      row.group,
+      row.category,
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      row.studentNumber,
+      "",
+      "",
+      "",
+      "",
+      row.questionKey,
+      row.questionPrompt,
+      row.rating,
+      formatDateTime(row.createdAt),
+      formatDateTime(row.updatedAt),
+    ]);
+  }
 
   const csvContent =
     "\uFEFF" +
@@ -102,7 +232,7 @@ export async function GET() {
     status: 200,
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="voting-results-${fileSafeEditionName}.csv"`,
+      "Content-Disposition": `attachment; filename="complete-voting-data-${fileSafeEditionName}.csv"`,
       "Cache-Control": "no-store",
     },
   });

@@ -5,11 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentStudentSession } from "@/lib/student-session";
 import { getActiveCourseEdition } from "@/lib/active-edition";
 
+export type PurchaseDecision = "YES" | "NO";
+
 export type PurchaseInterestState = {
   status: "idle" | "success" | "error";
   message: string;
-  isInterested: boolean;
-  interestedCount: number;
+  decision: PurchaseDecision | null;
+  reason: string;
+  yesCount: number;
+  noCount: number;
   votingOpen: boolean;
 };
 
@@ -23,12 +27,45 @@ function parseProductId(value: FormDataEntryValue | null): number | null {
   return productId;
 }
 
-async function countProductInterests(productId: number): Promise<number> {
-  return prisma.purchaseInterest.count({
-    where: {
-      productId,
-    },
-  });
+function parseDecision(
+  value: FormDataEntryValue | null,
+): PurchaseDecision | null {
+  const normalizedValue = String(value ?? "").trim().toUpperCase();
+
+  if (normalizedValue === "YES" || normalizedValue === "NO") {
+    return normalizedValue;
+  }
+
+  return null;
+}
+
+function parseReason(value: FormDataEntryValue | null): string {
+  return String(value ?? "").trim();
+}
+
+async function countProductResponses(productId: number): Promise<{
+  yesCount: number;
+  noCount: number;
+}> {
+  const [yesCount, noCount] = await Promise.all([
+    prisma.purchaseInterest.count({
+      where: {
+        productId,
+        decision: "YES",
+      },
+    }),
+    prisma.purchaseInterest.count({
+      where: {
+        productId,
+        decision: "NO",
+      },
+    }),
+  ]);
+
+  return {
+    yesCount,
+    noCount,
+  };
 }
 
 export async function togglePurchaseInterest(
@@ -41,6 +78,8 @@ export async function togglePurchaseInterest(
   ]);
 
   const productId = parseProductId(formData.get("productId"));
+  const decision = parseDecision(formData.get("decision"));
+  const reason = parseReason(formData.get("reason"));
 
   if (!currentSession || !activeEdition) {
     return {
@@ -59,6 +98,22 @@ export async function togglePurchaseInterest(
     };
   }
 
+  if (!decision) {
+    return {
+      ...previousState,
+      status: "error",
+      message: "Choose either Yes or No before saving your feedback.",
+    };
+  }
+
+  if (reason.length > 800) {
+    return {
+      ...previousState,
+      status: "error",
+      message: "The optional explanation must be 800 characters or fewer.",
+    };
+  }
+
   const [product, votingSettings] = await Promise.all([
     prisma.product.findFirst({
       where: {
@@ -70,7 +125,6 @@ export async function togglePurchaseInterest(
       },
       select: {
         id: true,
-        title: true,
       },
     }),
     prisma.votingSettings.findUnique({
@@ -95,54 +149,37 @@ export async function togglePurchaseInterest(
   const votingOpen = votingSettings?.isOpen ?? false;
 
   if (!votingOpen) {
-    const interestedCount = await countProductInterests(product.id);
+    const counts = await countProductResponses(product.id);
 
     return {
+      ...previousState,
+      ...counts,
       status: "error",
       message: "Voting is currently closed.",
-      isInterested: previousState.isInterested,
-      interestedCount,
       votingOpen: false,
     };
   }
 
-  const existingInterest = await prisma.purchaseInterest.findUnique({
+  await prisma.purchaseInterest.upsert({
     where: {
       productId_memberId: {
         productId: product.id,
         memberId: currentSession.member.id,
       },
     },
-    select: {
-      id: true,
+    update: {
+      decision,
+      reason: reason || null,
+    },
+    create: {
+      productId: product.id,
+      memberId: currentSession.member.id,
+      decision,
+      reason: reason || null,
     },
   });
 
-  let isInterested: boolean;
-  let message: string;
-
-  if (existingInterest) {
-    await prisma.purchaseInterest.delete({
-      where: {
-        id: existingInterest.id,
-      },
-    });
-
-    isInterested = false;
-    message = "Your purchase interest has been removed.";
-  } else {
-    await prisma.purchaseInterest.create({
-      data: {
-        productId: product.id,
-        memberId: currentSession.member.id,
-      },
-    });
-
-    isInterested = true;
-    message = "Your purchase interest has been recorded.";
-  }
-
-  const interestedCount = await countProductInterests(product.id);
+  const counts = await countProductResponses(product.id);
 
   revalidatePath("/catalogo");
   revalidatePath("/leaderboard");
@@ -150,9 +187,11 @@ export async function togglePurchaseInterest(
 
   return {
     status: "success",
-    message,
-    isInterested,
-    interestedCount,
+    message: "Your feedback has been saved.",
+    decision,
+    reason,
+    yesCount: counts.yesCount,
+    noCount: counts.noCount,
     votingOpen: true,
   };
 }

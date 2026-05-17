@@ -40,18 +40,20 @@ model Group {
 }
 
 model GroupMember {
-  id                     Int                @id @default(autoincrement())
-  groupId                Int
-  editionId              Int?
-  studentNumber          String
-  isActive               Boolean            @default(true)
-  group                  Group              @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  edition                CourseEdition?     @relation(fields: [editionId], references: [id], onDelete: Cascade)
-  interests              PurchaseInterest[]
-  sessions               StudentSession[]
-  submittedGroupRequests GroupRequest[]     @relation("SubmittedGroupRequests")
-  createdAt              DateTime           @default(now())
-  updatedAt              DateTime           @updatedAt
+  id                       Int                     @id @default(autoincrement())
+  groupId                  Int
+  editionId                Int?
+  studentNumber            String
+  isActive                 Boolean                 @default(true)
+  group                    Group                   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  edition                  CourseEdition?          @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  interests                PurchaseInterest[]
+  featureRatings           FeatureRating[]
+  productQuestionRatings   ProductQuestionRating[]
+  sessions                 StudentSession[]
+  submittedGroupRequests   GroupRequest[]          @relation("SubmittedGroupRequests")
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
 
   @@unique([editionId, studentNumber])
   @@index([groupId])
@@ -82,22 +84,23 @@ model AdminSession {
 }
 
 model Product {
-  id               Int                @id @default(autoincrement())
-  groupId          Int                @unique
-  categoryId       Int?
-  title            String
-  shortDescription String?
-  description      String?
-  priceCents       Int
-  status           String             @default("DRAFT")
-  group            Group              @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  category         Category?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  images           ProductImage[]
-  features         ProductFeature[]
-  badges           ProductBadge[]
-  interests        PurchaseInterest[]
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  id                     Int                     @id @default(autoincrement())
+  groupId                Int                     @unique
+  categoryId             Int?
+  title                  String
+  shortDescription       String?
+  description            String?
+  priceCents             Int
+  status                 String                  @default("DRAFT")
+  group                  Group                   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  category               Category?               @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  images                 ProductImage[]
+  features               ProductFeature[]
+  badges                 ProductBadge[]
+  interests              PurchaseInterest[]
+  productQuestionRatings ProductQuestionRating[]
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
 
   @@index([categoryId])
   @@index([status])
@@ -118,15 +121,65 @@ model ProductImage {
 }
 
 model ProductFeature {
-  id        Int      @id @default(autoincrement())
+  id        Int             @id @default(autoincrement())
   productId Int
   text      String
-  sortOrder Int      @default(0)
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  sortOrder Int             @default(0)
+  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ratings   FeatureRating[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 
   @@index([productId])
+}
+
+model FeatureRating {
+  id        Int            @id @default(autoincrement())
+  featureId Int
+  memberId  Int
+  rating    Int
+  feature   ProductFeature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  member    GroupMember    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([featureId, memberId])
+  @@index([featureId])
+  @@index([memberId])
+  @@index([rating])
+}
+
+model EvaluationQuestion {
+  id        Int                     @id @default(autoincrement())
+  key       String                  @unique
+  prompt    String
+  sortOrder Int                     @default(0)
+  isActive  Boolean                 @default(true)
+  ratings   ProductQuestionRating[]
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+
+  @@index([sortOrder])
+  @@index([isActive])
+}
+
+model ProductQuestionRating {
+  id         Int                @id @default(autoincrement())
+  productId  Int
+  memberId   Int
+  questionId Int
+  rating     Int
+  product    Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  member     GroupMember        @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  question   EvaluationQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  @@unique([productId, memberId, questionId])
+  @@index([productId])
+  @@index([memberId])
+  @@index([questionId])
+  @@index([rating])
 }
 
 model Category {
@@ -162,6 +215,8 @@ model PurchaseInterest {
   id        Int         @id @default(autoincrement())
   productId Int
   memberId  Int
+  decision  String      @default("YES")
+  reason    String?
   product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   member    GroupMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
   createdAt DateTime    @default(now())
@@ -169,6 +224,7 @@ model PurchaseInterest {
   @@unique([productId, memberId])
   @@index([productId])
   @@index([memberId])
+  @@index([decision])
 }
 
 model VotingSettings {

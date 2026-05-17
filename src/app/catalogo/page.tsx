@@ -58,9 +58,12 @@ export default async function CatalogPage() {
         },
         take: 1,
       },
-      _count: {
+      interests: {
+        where: {
+          decision: "YES",
+        },
         select: {
-          interests: true,
+          id: true,
         },
       },
     },
@@ -84,9 +87,9 @@ export default async function CatalogPage() {
                 Explore the products created by the groups
               </h1>
               <p className="max-w-3xl text-base leading-8 text-slate-600 sm:text-lg">
-                Browse the published innovations of the active course edition,
-                open their full product pages and discover which ideas generate
-                the strongest purchase interest.
+                Browse the published innovations of the active course edition
+                and discover which ideas receive the strongest positive demand
+                signal.
               </p>
             </div>
 
@@ -126,6 +129,7 @@ export default async function CatalogPage() {
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {products.map((product) => {
                 const coverImage = product.images[0];
+                const yesVotes = product.interests.length;
 
                 return (
                   <article
@@ -205,10 +209,10 @@ export default async function CatalogPage() {
 
                         <div>
                           <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                            Interested
+                            Yes votes
                           </p>
                           <p className="mt-2 text-lg font-black text-slate-950">
-                            {product._count.interests}
+                            {yesVotes}
                           </p>
                         </div>
                       </div>

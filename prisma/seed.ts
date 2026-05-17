@@ -46,12 +46,53 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const DEFAULT_BADGES = [
-  "Eco-friendly",
-  "Low cost",
-  "AI-based",
-  "Made for students",
-  "Social impact",
-  "Prototype ready",
+  "Reduce",
+  "Reuse",
+  "Repair",
+  "Recycle",
+  "Recover",
+  "Redesign",
+  "Social sustainability",
+  "Environmental sustainability",
+  "Codesign",
+  "Modularity",
+  "Innovative materials",
+  "Innovative process",
+];
+
+const DEFAULT_EVALUATION_QUESTIONS = [
+  {
+    key: "solves-real-problem",
+    prompt: "Rate if the product contributes to solving a real problem.",
+    sortOrder: 1,
+  },
+  {
+    key: "strategic-relevance",
+    prompt: "Rate if you consider the product strategically relevant.",
+    sortOrder: 2,
+  },
+  {
+    key: "market-differentiation",
+    prompt:
+      "Rate if the product differentiates from existing market solutions.",
+    sortOrder: 3,
+  },
+  {
+    key: "circular-eco-design",
+    prompt:
+      "Rate if the product responds to circular principles of Eco-Design.",
+    sortOrder: 4,
+  },
+  {
+    key: "too-costly",
+    prompt: "Rate if the product is too costly.",
+    sortOrder: 5,
+  },
+  {
+    key: "not-innovative",
+    prompt: "Rate if the product is not innovative.",
+    sortOrder: 6,
+  },
 ];
 
 function normalizeText(value: string): string {
@@ -186,6 +227,14 @@ async function ensureCurrentEdition() {
 }
 
 async function seedReferenceData(): Promise<void> {
+  await prisma.badge.deleteMany({
+    where: {
+      name: {
+        notIn: DEFAULT_BADGES,
+      },
+    },
+  });
+
   for (const category of DEFAULT_CATEGORIES) {
     await prisma.category.upsert({
       where: { name: category },
@@ -208,6 +257,25 @@ async function seedReferenceData(): Promise<void> {
       create: {
         name: badge,
         slug: slugify(badge),
+      },
+    });
+  }
+
+  for (const question of DEFAULT_EVALUATION_QUESTIONS) {
+    await prisma.evaluationQuestion.upsert({
+      where: {
+        key: question.key,
+      },
+      update: {
+        prompt: question.prompt,
+        sortOrder: question.sortOrder,
+        isActive: true,
+      },
+      create: {
+        key: question.key,
+        prompt: question.prompt,
+        sortOrder: question.sortOrder,
+        isActive: true,
       },
     });
   }
@@ -279,6 +347,7 @@ async function printSeedSummary(editionId: number): Promise<void> {
     activeMembersCount,
     categoriesCount,
     badgesCount,
+    questionsCount,
     votingSettings,
   ] = await Promise.all([
     prisma.courseEdition.findUnique({
@@ -309,6 +378,11 @@ async function printSeedSummary(editionId: number): Promise<void> {
     }),
     prisma.category.count(),
     prisma.badge.count(),
+    prisma.evaluationQuestion.count({
+      where: {
+        isActive: true,
+      },
+    }),
     prisma.votingSettings.findUnique({
       where: {
         editionId,
@@ -328,6 +402,7 @@ async function printSeedSummary(editionId: number): Promise<void> {
   console.log(`Active student IDs for this edition: ${activeMembersCount}`);
   console.log(`Categories stored: ${categoriesCount}`);
   console.log(`Badges stored: ${badgesCount}`);
+  console.log(`Evaluation questions stored: ${questionsCount}`);
   console.log(
     `Voting status: ${votingSettings?.isOpen ? "OPEN" : "CLOSED"}`,
   );
