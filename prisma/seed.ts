@@ -85,7 +85,7 @@ const DEFAULT_EVALUATION_QUESTIONS = [
   },
   {
     key: "too-costly",
-    prompt: "Rate if the product is too costly. (higher if it is cheap or has a good value for money)",
+    prompt: "Rate if the product is too costly. (higher if it is expensive)",
     sortOrder: 5,
   },
   {
