@@ -17,6 +17,8 @@ export type PurchaseInterestState = {
   votingOpen: boolean;
 };
 
+type PurchaseInterestIntent = "SAVE" | "WITHDRAW";
+
 function parseProductId(value: FormDataEntryValue | null): number | null {
   const productId = Number(String(value ?? "").trim());
 
@@ -41,6 +43,18 @@ function parseDecision(
 
 function parseReason(value: FormDataEntryValue | null): string {
   return String(value ?? "").trim();
+}
+
+function parseIntent(
+  value: FormDataEntryValue | null,
+): PurchaseInterestIntent {
+  const normalizedValue = String(value ?? "").trim().toUpperCase();
+
+  if (normalizedValue === "WITHDRAW") {
+    return "WITHDRAW";
+  }
+
+  return "SAVE";
 }
 
 async function countProductResponses(productId: number): Promise<{
@@ -68,6 +82,12 @@ async function countProductResponses(productId: number): Promise<{
   };
 }
 
+function revalidateProductVotingPages(productId: number): void {
+  revalidatePath("/catalogo");
+  revalidatePath("/leaderboard");
+  revalidatePath(`/catalogo/${productId}`);
+}
+
 export async function togglePurchaseInterest(
   previousState: PurchaseInterestState,
   formData: FormData,
@@ -80,6 +100,7 @@ export async function togglePurchaseInterest(
   const productId = parseProductId(formData.get("productId"));
   const decision = parseDecision(formData.get("decision"));
   const reason = parseReason(formData.get("reason"));
+  const intent = parseIntent(formData.get("intent"));
 
   if (!currentSession || !activeEdition) {
     return {
@@ -95,22 +116,6 @@ export async function togglePurchaseInterest(
       ...previousState,
       status: "error",
       message: "The selected product is not valid.",
-    };
-  }
-
-  if (!decision) {
-    return {
-      ...previousState,
-      status: "error",
-      message: "Choose either Yes or No before saving your group's feedback.",
-    };
-  }
-
-  if (reason.length > 800) {
-    return {
-      ...previousState,
-      status: "error",
-      message: "The optional explanation must be 800 characters or fewer.",
     };
   }
 
@@ -160,6 +165,60 @@ export async function togglePurchaseInterest(
     };
   }
 
+  if (intent === "WITHDRAW") {
+    const existingVote = await prisma.purchaseInterest.findUnique({
+      where: {
+        productId_groupId: {
+          productId: product.id,
+          groupId: currentSession.member.groupId,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingVote) {
+      await prisma.purchaseInterest.delete({
+        where: {
+          id: existingVote.id,
+        },
+      });
+    }
+
+    const counts = await countProductResponses(product.id);
+
+    revalidateProductVotingPages(product.id);
+
+    return {
+      status: "success",
+      message: existingVote
+        ? "Your group's vote has been withdrawn."
+        : "Your group had no active vote to withdraw.",
+      decision: null,
+      reason: "",
+      yesCount: counts.yesCount,
+      noCount: counts.noCount,
+      votingOpen: true,
+    };
+  }
+
+  if (!decision) {
+    return {
+      ...previousState,
+      status: "error",
+      message: "Choose either Yes or No before saving your group's feedback.",
+    };
+  }
+
+  if (reason.length > 800) {
+    return {
+      ...previousState,
+      status: "error",
+      message: "The optional explanation must be 800 characters or fewer.",
+    };
+  }
+
   await prisma.purchaseInterest.upsert({
     where: {
       productId_groupId: {
@@ -183,9 +242,7 @@ export async function togglePurchaseInterest(
 
   const counts = await countProductResponses(product.id);
 
-  revalidatePath("/catalogo");
-  revalidatePath("/leaderboard");
-  revalidatePath(`/catalogo/${product.id}`);
+  revalidateProductVotingPages(product.id);
 
   return {
     status: "success",

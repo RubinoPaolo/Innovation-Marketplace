@@ -57,7 +57,7 @@ export function PurchaseInterestPanel({
         </h2>
         <p className="max-w-3xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
           Each group can submit one Yes or No vote for this product. Any member
-          of the group can create or update the shared vote.
+          of the group can create, update or withdraw the shared vote.
         </p>
       </div>
 
@@ -181,17 +181,33 @@ export function PurchaseInterestPanel({
           </div>
         ) : null}
 
-        <button
-          type="submit"
-          disabled={!state.votingOpen || pending || !selectedDecision}
-          className="premium-button-primary inline-flex h-12 w-full items-center justify-center rounded-2xl px-6 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-        >
-          {pending
-            ? "Saving..."
-            : !state.votingOpen
-              ? "Voting closed"
-              : "Save group feedback"}
-        </button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <button
+            type="submit"
+            name="intent"
+            value="SAVE"
+            disabled={!state.votingOpen || pending || !selectedDecision}
+            className="premium-button-primary inline-flex h-12 w-full items-center justify-center rounded-2xl px-6 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          >
+            {pending
+              ? "Saving..."
+              : !state.votingOpen
+                ? "Voting closed"
+                : "Save group feedback"}
+          </button>
+
+          {state.decision ? (
+            <button
+              type="submit"
+              name="intent"
+              value="WITHDRAW"
+              disabled={!state.votingOpen || pending}
+              className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-6 text-sm font-black text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-200 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+            >
+              {pending ? "Processing..." : "Withdraw group vote"}
+            </button>
+          ) : null}
+        </div>
       </form>
     </section>
   );
