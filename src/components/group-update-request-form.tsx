@@ -81,30 +81,28 @@ export function GroupUpdateRequestForm({
   const formDisabled = hasPendingRequest || pending;
 
   return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+    <section className="premium-surface-strong rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
       <div className="space-y-3">
-        <p className="text-sm font-black uppercase tracking-[0.22em] text-slate-500">
-          Group update request
-        </p>
-        <h2 className="text-2xl font-black tracking-tight text-slate-950">
-          Request changes to your group
+        <p className="premium-kicker">Group update request</p>
+        <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950">
+          Request changes to your group.
         </h2>
-        <p className="max-w-4xl text-sm leading-7 text-slate-600">
+        <p className="max-w-4xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
           Propose a new group name, ask to add student IDs or request the removal of current members. The changes are not applied immediately: the admin must review and approve them first.
         </p>
       </div>
 
       {hasPendingRequest ? (
-        <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm font-bold leading-7 text-amber-900">
+        <div className="mt-6 rounded-[1.7rem] border border-amber-200 bg-amber-50/90 p-5 text-sm font-bold leading-7 text-amber-950">
           Your group already has a pending update request. A new request can be submitted after the admin reviews the existing one.
         </div>
       ) : null}
 
       <form action={formAction} className="mt-6 space-y-7" noValidate>
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           <label
             htmlFor="requestedGroupName"
-            className="block text-sm font-bold text-slate-900"
+            className="block text-sm font-black text-slate-900"
           >
             Requested group name
           </label>
@@ -120,7 +118,7 @@ export function GroupUpdateRequestForm({
                 requestedGroupName: event.target.value,
               }))
             }
-            className="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-950 focus:ring-4 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+            className="h-13 w-full rounded-2xl border border-slate-300 bg-white px-4 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
           />
           <p className="text-xs font-semibold leading-5 text-slate-500">
             Leave the current name unchanged when you only need member changes.
@@ -128,10 +126,10 @@ export function GroupUpdateRequestForm({
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             <label
               htmlFor="studentNumbersToAdd"
-              className="block text-sm font-bold text-slate-900"
+              className="block text-sm font-black text-slate-900"
             >
               Student IDs to add
             </label>
@@ -147,12 +145,12 @@ export function GroupUpdateRequestForm({
                 }))
               }
               placeholder={'Optional. Enter one or more student IDs.\nSeparate them with new lines, commas or semicolons.'}
-              className="min-h-40 w-full resize-y rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base leading-7 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-950 focus:ring-4 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+              className="min-h-40 w-full resize-y rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base leading-7 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
             />
           </div>
 
-          <fieldset className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-            <legend className="px-1 text-sm font-bold text-slate-900">
+          <fieldset className="premium-muted space-y-3 rounded-[1.8rem] p-4 sm:p-5">
+            <legend className="px-1 text-sm font-black text-slate-900">
               Current student IDs to remove
             </legend>
             <p className="text-xs font-semibold leading-5 text-slate-500">
@@ -160,7 +158,7 @@ export function GroupUpdateRequestForm({
             </p>
 
             {activeMembers.length === 0 ? (
-              <p className="rounded-2xl bg-white p-4 text-sm font-semibold text-slate-600">
+              <p className="rounded-2xl border border-white/70 bg-white/80 p-4 text-sm font-semibold text-slate-600">
                 No active members are currently available for removal.
               </p>
             ) : (
@@ -173,7 +171,11 @@ export function GroupUpdateRequestForm({
                   return (
                     <label
                       key={member.studentNumber}
-                      className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:border-slate-300 disabled:cursor-not-allowed"
+                      className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 transition ${
+                        checked
+                          ? "border-rose-300 bg-rose-50 shadow-sm shadow-rose-900/5"
+                          : "border-slate-200 bg-white/82 hover:border-slate-300 hover:bg-white"
+                      }`}
                     >
                       <input
                         type="checkbox"
@@ -187,9 +189,9 @@ export function GroupUpdateRequestForm({
                             event.target.checked,
                           )
                         }
-                        className="h-5 w-5 rounded border-slate-300 text-slate-950 focus:ring-slate-400"
+                        className="h-5 w-5 rounded border-slate-300 text-slate-950 focus:ring-blue-200"
                       />
-                      <span className="text-sm font-bold text-slate-800">
+                      <span className="text-sm font-black text-slate-800">
                         {member.studentNumber}
                       </span>
                     </label>
@@ -200,8 +202,8 @@ export function GroupUpdateRequestForm({
           </fieldset>
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor="note" className="block text-sm font-bold text-slate-900">
+        <div className="space-y-2.5">
+          <label htmlFor="note" className="block text-sm font-black text-slate-900">
             Optional note for the admin
           </label>
           <textarea
@@ -216,13 +218,13 @@ export function GroupUpdateRequestForm({
               }))
             }
             placeholder="Explain why the requested changes are needed, if useful."
-            className="min-h-28 w-full resize-y rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base leading-7 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-950 focus:ring-4 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+            className="min-h-28 w-full resize-y rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base leading-7 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
           />
         </div>
 
         <div
           aria-live="polite"
-          className={`min-h-6 text-sm font-bold ${
+          className={`min-h-6 text-sm font-black ${
             state.status === "success"
               ? "text-emerald-700"
               : state.status === "error"
@@ -236,7 +238,7 @@ export function GroupUpdateRequestForm({
         <button
           type="submit"
           disabled={formDisabled}
-          className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-slate-950 px-6 text-sm font-bold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 sm:w-auto"
+          className="premium-button-primary inline-flex h-12 w-full items-center justify-center rounded-2xl px-6 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {pending ? "Submitting..." : "Submit group update request"}
         </button>

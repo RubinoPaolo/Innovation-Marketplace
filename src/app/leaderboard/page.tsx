@@ -152,78 +152,83 @@ export default async function LeaderboardPage() {
   const leadingProduct = rankedProducts[0];
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-950">
+    <div className="premium-page min-h-screen text-slate-950">
       <SiteHeader />
 
-      <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 lg:px-12">
+      <main className="premium-shell py-8 sm:py-10 lg:py-12">
         <section className="space-y-8">
-          <div className="space-y-4">
-            <p className="text-sm font-black uppercase tracking-[0.24em] text-slate-500">
-              Leaderboard · {activeEdition.name}
-            </p>
-            <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
-              Most positively rated products
-            </h1>
-            <p className="max-w-3xl text-base leading-8 text-slate-600 sm:text-lg">
-              The leaderboard ranks published products of the active course
-              edition according to the number of students who selected Yes.
-            </p>
+          <div className="premium-hero rounded-[2.4rem] px-5 py-6 sm:px-7 sm:py-8 lg:px-8 lg:py-9">
+            <div className="relative z-10 space-y-7">
+              <div className="max-w-4xl space-y-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="premium-kicker">Leaderboard</span>
+                  <span className="premium-chip inline-flex items-center rounded-full px-4 py-2 text-sm font-bold text-slate-700">
+                    {activeEdition.name}
+                  </span>
+                </div>
+
+                <h1 className="text-4xl font-black leading-[0.98] tracking-[-0.06em] text-slate-950 sm:text-5xl lg:text-6xl">
+                  The products receiving the strongest positive feedback.
+                </h1>
+
+                <p className="max-w-3xl text-base font-medium leading-8 text-slate-600 sm:text-lg">
+                  Rankings are based on the number of students who selected Yes for each published product.
+                </p>
+              </div>
+
+              <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <article className="premium-stat-card rounded-[1.8rem] p-5">
+                  <p className="relative z-10 text-sm font-bold text-slate-500">
+                    Published products
+                  </p>
+                  <p className="relative z-10 mt-4 text-4xl font-black tracking-tight text-slate-950">
+                    {rankedProducts.length}
+                  </p>
+                </article>
+
+                <article className="premium-stat-card rounded-[1.8rem] p-5">
+                  <p className="relative z-10 text-sm font-bold text-slate-500">
+                    Yes votes
+                  </p>
+                  <p className="relative z-10 mt-4 text-4xl font-black tracking-tight text-slate-950">
+                    {totalYesVotes}
+                  </p>
+                </article>
+
+                <article className="premium-stat-card rounded-[1.8rem] p-5">
+                  <p className="relative z-10 text-sm font-bold text-slate-500">
+                    Active students
+                  </p>
+                  <p className="relative z-10 mt-4 text-4xl font-black tracking-tight text-slate-950">
+                    {totalStudents}
+                  </p>
+                </article>
+
+                <article className="premium-stat-card rounded-[1.8rem] p-5">
+                  <p className="relative z-10 text-sm font-bold text-slate-500">
+                    Current leader
+                  </p>
+                  <p className="relative z-10 mt-4 line-clamp-2 text-lg font-black leading-6 tracking-tight text-slate-950">
+                    {leadingProduct?.title ?? "No product yet"}
+                  </p>
+                </article>
+              </section>
+            </div>
           </div>
 
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <article className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm font-semibold text-slate-500">
-                Published products
-              </p>
-              <p className="mt-3 text-3xl font-black text-slate-950">
-                {rankedProducts.length}
-              </p>
-            </article>
-
-            <article className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm font-semibold text-slate-500">
-                Yes votes
-              </p>
-              <p className="mt-3 text-3xl font-black text-slate-950">
-                {totalYesVotes}
-              </p>
-            </article>
-
-            <article className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm font-semibold text-slate-500">
-                Active students
-              </p>
-              <p className="mt-3 text-3xl font-black text-slate-950">
-                {totalStudents}
-              </p>
-            </article>
-
-            <article className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm font-semibold text-slate-500">
-                Current leader
-              </p>
-              <p className="mt-3 line-clamp-2 text-lg font-black text-slate-950">
-                {leadingProduct?.title ?? "No product yet"}
-              </p>
-            </article>
-          </section>
-
           {rankedProducts.length === 0 ? (
-            <section className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm sm:p-12">
-              <div className="mx-auto max-w-2xl space-y-4">
-                <p className="text-sm font-black uppercase tracking-[0.22em] text-slate-500">
-                  Ranking not available yet
-                </p>
-                <h2 className="text-3xl font-black tracking-tight text-slate-950">
-                  No published products to rank
+            <section className="premium-surface-strong rounded-[2.2rem] p-6 text-center sm:p-10 lg:p-12">
+              <div className="mx-auto max-w-2xl space-y-5">
+                <p className="premium-kicker justify-center">Ranking not available yet</p>
+                <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950 sm:text-4xl">
+                  No published products to rank.
                 </h2>
-                <p className="text-base leading-8 text-slate-600">
-                  Once groups publish their products, they will appear here and
-                  the leaderboard will update automatically as students vote.
+                <p className="text-base font-medium leading-8 text-slate-600">
+                  Once groups publish their products, they will appear here and the ranking will update automatically as students vote.
                 </p>
                 <Link
                   href="/catalogo"
-                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-slate-950 px-6 text-sm font-bold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-300"
+                  className="premium-button-primary inline-flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
                 >
                   Go to catalog
                 </Link>
@@ -231,13 +236,11 @@ export default async function LeaderboardPage() {
             </section>
           ) : (
             <>
-              <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+              <section className="premium-surface-strong rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
                 <div className="space-y-3">
-                  <p className="text-sm font-black uppercase tracking-[0.22em] text-slate-500">
-                    Top 3
-                  </p>
-                  <h2 className="text-2xl font-black tracking-tight text-slate-950">
-                    Products with the strongest positive feedback
+                  <p className="premium-kicker">Top 3</p>
+                  <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950">
+                    Podium of the most convincing proposals.
                   </h2>
                 </div>
 
@@ -250,65 +253,64 @@ export default async function LeaderboardPage() {
                     return (
                       <article
                         key={product.id}
-                        className="overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50"
+                        className="premium-surface premium-card-hover group overflow-hidden rounded-[2rem]"
                       >
                         <Link
                           href={`/catalogo/${product.id}`}
-                          className="block focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-300"
+                          className="block focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
                         >
-                          <div className="aspect-[16/10] bg-slate-200">
+                          <div className="relative aspect-[16/10] overflow-hidden bg-slate-200/80">
                             {coverImage ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
                                 src={coverImage.imageUrl}
                                 alt={coverImage.altText ?? product.title}
-                                className="h-full w-full object-cover"
+                                className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.025]"
                               />
                             ) : (
-                              <div className="flex h-full items-center justify-center px-6 text-center text-sm font-semibold text-slate-500">
+                              <div className="flex h-full items-center justify-center px-6 text-center text-sm font-bold text-slate-500">
                                 Product image not available yet
                               </div>
                             )}
+
+                            <div className="absolute left-4 top-4 rounded-full bg-slate-950 px-3 py-1 text-xs font-black text-white shadow-lg shadow-slate-950/20">
+                              {getRankLabel(rank)} place
+                            </div>
                           </div>
                         </Link>
 
-                        <div className="space-y-4 p-5">
+                        <div className="space-y-5 p-5 sm:p-6">
                           <div className="flex items-center justify-between gap-3">
-                            <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-black text-white">
-                              {getRankLabel(rank)} place
-                            </span>
-                            <span className="text-sm font-black text-slate-700">
+                            <p className="text-sm font-bold text-slate-500">
+                              Group {product.group.name}
+                            </p>
+                            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
                               {yesVotes} yes vote{yesVotes === 1 ? "" : "s"}
                             </span>
                           </div>
 
-                          <div className="space-y-2">
-                            <p className="text-sm font-semibold text-slate-500">
-                              Group {product.group.name}
-                            </p>
-                            <Link
-                              href={`/catalogo/${product.id}`}
-                              className="block text-2xl font-black tracking-tight text-slate-950 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-200"
-                            >
-                              {product.title}
-                            </Link>
-                          </div>
+                          <Link
+                            href={`/catalogo/${product.id}`}
+                            className="block text-2xl font-black tracking-[-0.045em] text-slate-950 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
+                          >
+                            {product.title}
+                          </Link>
 
-                          <div className="grid grid-cols-2 gap-3 rounded-3xl bg-white p-4">
-                            <div>
-                              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                          <div className="premium-muted grid grid-cols-2 gap-3 rounded-[1.6rem] p-3.5">
+                            <div className="rounded-[1.25rem] border border-white/70 bg-white/70 p-3.5">
+                              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
                                 Price
                               </p>
-                              <p className="mt-2 text-base font-black text-slate-950">
+                              <p className="mt-2 text-base font-black tracking-tight text-slate-950">
                                 {formatPrice(product.priceCents)}
                               </p>
                             </div>
 
-                            <div>
-                              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                            <div className="rounded-[1.25rem] border border-white/70 bg-white/70 p-3.5">
+                              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
                                 Yes share
                               </p>
-                              <p className="mt-2 text-base font-black text-slate-950">
+                              <p className="mt-2 text-base font-black tracking-tight text-slate-950">
                                 {formatPercentage(yesVotes, totalStudents)}
                               </p>
                             </div>
@@ -320,13 +322,11 @@ export default async function LeaderboardPage() {
                 </div>
               </section>
 
-              <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+              <section className="premium-surface-strong rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
                 <div className="space-y-3">
-                  <p className="text-sm font-black uppercase tracking-[0.22em] text-slate-500">
-                    Full ranking
-                  </p>
-                  <h2 className="text-2xl font-black tracking-tight text-slate-950">
-                    Complete leaderboard
+                  <p className="premium-kicker">Full ranking</p>
+                  <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950">
+                    Complete leaderboard.
                   </h2>
                 </div>
 
@@ -339,21 +339,21 @@ export default async function LeaderboardPage() {
                     return (
                       <article
                         key={product.id}
-                        className="grid gap-4 rounded-[2rem] border border-slate-200 bg-slate-50 p-4 md:grid-cols-[96px_1fr_auto] md:items-center"
+                        className="premium-muted grid gap-4 rounded-[1.9rem] p-4 md:grid-cols-[92px_minmax(0,1fr)_minmax(280px,340px)] md:items-center"
                       >
                         <div className="flex items-center gap-3 md:block">
-                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-lg font-black text-white">
+                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-lg font-black text-white shadow-lg shadow-slate-950/15">
                             {rank}
                           </div>
-                          <p className="text-sm font-bold text-slate-600 md:mt-2 md:text-center">
+                          <p className="text-sm font-black text-slate-600 md:mt-2 md:text-center">
                             Rank
                           </p>
                         </div>
 
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
                           <Link
                             href={`/catalogo/${product.id}`}
-                            className="block h-24 w-full overflow-hidden rounded-2xl bg-slate-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-300 sm:w-36"
+                            className="block h-24 w-full shrink-0 overflow-hidden rounded-2xl bg-slate-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80 sm:w-36"
                           >
                             {coverImage ? (
                               // eslint-disable-next-line @next/next/no-img-element
@@ -363,57 +363,57 @@ export default async function LeaderboardPage() {
                                 className="h-full w-full object-cover"
                               />
                             ) : (
-                              <div className="flex h-full items-center justify-center px-3 text-center text-xs font-semibold text-slate-500">
+                              <div className="flex h-full items-center justify-center px-3 text-center text-xs font-bold text-slate-500">
                                 No image
                               </div>
                             )}
                           </Link>
 
-                          <div className="space-y-2">
+                          <div className="min-w-0 space-y-2">
                             <div className="flex flex-wrap gap-2">
                               {product.category ? (
-                                <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700">
+                                <span className="premium-chip rounded-full px-3 py-1 text-xs font-black text-slate-700">
                                   {product.category.name}
                                 </span>
                               ) : null}
                             </div>
 
-                            <p className="text-sm font-semibold text-slate-500">
+                            <p className="text-sm font-bold text-slate-500">
                               Group {product.group.name}
                             </p>
                             <Link
                               href={`/catalogo/${product.id}`}
-                              className="block text-xl font-black tracking-tight text-slate-950 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-200"
+                              className="block truncate text-xl font-black tracking-[-0.04em] text-slate-950 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
                             >
                               {product.title}
                             </Link>
                           </div>
                         </div>
 
-                        <div className="grid gap-3 sm:grid-cols-3 md:min-w-[300px]">
-                          <div className="rounded-2xl bg-white p-4">
-                            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          <div className="rounded-2xl border border-white/70 bg-white/76 p-4">
+                            <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
                               Yes votes
                             </p>
-                            <p className="mt-2 text-lg font-black text-slate-950">
+                            <p className="mt-2 text-lg font-black tracking-tight text-slate-950">
                               {yesVotes}
                             </p>
                           </div>
 
-                          <div className="rounded-2xl bg-white p-4">
-                            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                          <div className="rounded-2xl border border-white/70 bg-white/76 p-4">
+                            <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
                               Yes share
                             </p>
-                            <p className="mt-2 text-lg font-black text-slate-950">
+                            <p className="mt-2 text-lg font-black tracking-tight text-slate-950">
                               {formatPercentage(yesVotes, totalStudents)}
                             </p>
                           </div>
 
-                          <div className="rounded-2xl bg-white p-4">
-                            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                          <div className="rounded-2xl border border-white/70 bg-white/76 p-4">
+                            <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
                               Price
                             </p>
-                            <p className="mt-2 text-lg font-black text-slate-950">
+                            <p className="mt-2 text-lg font-black tracking-tight text-slate-950">
                               {formatPrice(product.priceCents)}
                             </p>
                           </div>
