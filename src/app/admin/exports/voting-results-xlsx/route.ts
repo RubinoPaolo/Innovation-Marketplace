@@ -138,9 +138,9 @@ export async function GET() {
   );
 
   const metricCells = [
-    ["A4", "Active students", "B4", exportData.activeStudents],
-    ["D4", "Published products", "E4", exportData.publishedProducts],
-    ["G4", "Generated at", "H4", formatDateTime(exportData.generatedAt)],
+    ["A4", "Active groups", "B4", exportData.activeGroups],
+    ["D4", "Active students", "E4", exportData.activeStudents],
+    ["G4", "Published products", "H4", exportData.publishedProducts],
     ["A5", "Yes votes", "B5", exportData.totalYesVotes],
     ["D5", "No votes", "E5", exportData.totalNoVotes],
     [
@@ -156,6 +156,7 @@ export async function GET() {
       "E6",
       exportData.totalEvaluationRatings,
     ],
+    ["G6", "Generated at", "H6", formatDateTime(exportData.generatedAt)],
   ] as const;
 
   for (const [labelCellRef, label, valueCellRef, value] of metricCells) {
@@ -204,10 +205,10 @@ export async function GET() {
       columns: [
         { name: "Rank", filterButton: true },
         { name: "Product", filterButton: true },
-        { name: "Group", filterButton: true },
+        { name: "Product group", filterButton: true },
         { name: "Yes votes", filterButton: true },
         { name: "No votes", filterButton: true },
-        { name: "Positive rate", filterButton: true },
+        { name: "Positive group rate", filterButton: true },
       ],
       rows: topTenRows.map((row) => [
         row.rank,
@@ -232,7 +233,7 @@ export async function GET() {
     };
   }
 
-  applyHeaderWidths(summarySheet, [16, 34, 28, 18, 18, 18, 22, 22]);
+  applyHeaderWidths(summarySheet, [16, 34, 28, 18, 18, 20, 22, 22]);
 
   const productSummarySheet = workbook.addWorksheet("Product Summary", {
     views: [{ state: "frozen", ySplit: 4, showGridLines: false }],
@@ -259,14 +260,14 @@ export async function GET() {
         { name: "Rank", filterButton: true },
         { name: "Product ID", filterButton: true },
         { name: "Product", filterButton: true },
-        { name: "Group", filterButton: true },
+        { name: "Product group", filterButton: true },
         { name: "Category", filterButton: true },
         { name: "Price EUR", filterButton: true },
         { name: "Publication status", filterButton: true },
         { name: "Yes votes", filterButton: true },
         { name: "No votes", filterButton: true },
         { name: "Feedback responses", filterButton: true },
-        { name: "Positive rate", filterButton: true },
+        { name: "Positive group rate", filterButton: true },
         { name: "Feature ratings", filterButton: true },
         { name: "Evaluation ratings", filterButton: true },
       ],
@@ -303,7 +304,7 @@ export async function GET() {
   }
 
   applyHeaderWidths(productSummarySheet, [
-    10, 12, 36, 28, 22, 16, 20, 14, 14, 20, 16, 18, 20,
+    10, 12, 36, 28, 22, 16, 20, 14, 14, 20, 20, 18, 20,
   ]);
 
   const feedbackSheet = workbook.addWorksheet("Product Feedback", {
@@ -314,7 +315,7 @@ export async function GET() {
     feedbackSheet,
     "Product Feedback",
     `Edition: ${exportData.edition.name}`,
-    "I",
+    "K",
   );
 
   if (exportData.productFeedbackRows.length > 0) {
@@ -331,12 +332,14 @@ export async function GET() {
         { name: "Feedback ID", filterButton: true },
         { name: "Product ID", filterButton: true },
         { name: "Product", filterButton: true },
-        { name: "Group", filterButton: true },
+        { name: "Product group", filterButton: true },
         { name: "Category", filterButton: true },
-        { name: "Student number", filterButton: true },
+        { name: "Voting group", filterButton: true },
+        { name: "Last edited by student ID", filterButton: true },
         { name: "Decision", filterButton: true },
         { name: "Reason", filterButton: true },
         { name: "Created at", filterButton: true },
+        { name: "Updated at", filterButton: true },
       ],
       rows: exportData.productFeedbackRows.map((row) => [
         row.feedbackId,
@@ -344,10 +347,12 @@ export async function GET() {
         row.product,
         row.group,
         row.category,
-        row.studentNumber,
+        row.votingGroup,
+        row.submittedByStudentNumber,
         row.decision,
         row.reason,
         formatDateTime(row.createdAt),
+        formatDateTime(row.updatedAt),
       ]),
     });
   } else {
@@ -356,7 +361,7 @@ export async function GET() {
   }
 
   applyHeaderWidths(feedbackSheet, [
-    14, 12, 36, 28, 22, 18, 14, 60, 24,
+    14, 12, 36, 28, 22, 28, 24, 14, 60, 24, 24,
   ]);
 
   const featureRatingsSheet = workbook.addWorksheet("Feature Ratings", {
@@ -384,7 +389,7 @@ export async function GET() {
         { name: "Rating ID", filterButton: true },
         { name: "Product ID", filterButton: true },
         { name: "Product", filterButton: true },
-        { name: "Group", filterButton: true },
+        { name: "Product group", filterButton: true },
         { name: "Category", filterButton: true },
         { name: "Feature ID", filterButton: true },
         { name: "Feature", filterButton: true },
@@ -441,7 +446,7 @@ export async function GET() {
         { name: "Rating ID", filterButton: true },
         { name: "Product ID", filterButton: true },
         { name: "Product", filterButton: true },
-        { name: "Group", filterButton: true },
+        { name: "Product group", filterButton: true },
         { name: "Category", filterButton: true },
         { name: "Question key", filterButton: true },
         { name: "Evaluation question", filterButton: true },

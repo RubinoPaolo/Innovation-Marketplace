@@ -27,10 +27,12 @@ export type ProductFeedbackExportRow = {
   product: string;
   group: string;
   category: string;
-  studentNumber: string;
+  votingGroup: string;
+  submittedByStudentNumber: string;
   decision: string;
   reason: string;
   createdAt: Date;
+  updatedAt: Date;
 };
 
 export type FeatureRatingExportRow = {
@@ -64,6 +66,7 @@ export type EvaluationRatingExportRow = {
 export type VotingResultsExportData = {
   edition: VotingResultsExportEdition;
   generatedAt: Date;
+  activeGroups: number;
   activeStudents: number;
   publishedProducts: number;
   totalYesVotes: number;
@@ -82,6 +85,7 @@ export async function buildVotingResultsExportData(
 ): Promise<VotingResultsExportData> {
   const [
     products,
+    activeGroups,
     activeStudents,
     feedbackRowsRaw,
     featureRatingRowsRaw,
@@ -115,6 +119,14 @@ export async function buildVotingResultsExportData(
         title: "asc",
       },
     }),
+
+    prisma.group.count({
+      where: {
+        editionId: edition.id,
+        isActive: true,
+      },
+    }),
+
     prisma.groupMember.count({
       where: {
         editionId: edition.id,
@@ -124,6 +136,7 @@ export async function buildVotingResultsExportData(
         },
       },
     }),
+
     prisma.purchaseInterest.findMany({
       where: {
         product: {
@@ -140,6 +153,12 @@ export async function buildVotingResultsExportData(
         decision: true,
         reason: true,
         createdAt: true,
+        updatedAt: true,
+        group: {
+          select: {
+            name: true,
+          },
+        },
         member: {
           select: {
             studentNumber: true,
@@ -166,10 +185,11 @@ export async function buildVotingResultsExportData(
           productId: "asc",
         },
         {
-          createdAt: "asc",
+          updatedAt: "asc",
         },
       ],
     }),
+
     prisma.featureRating.findMany({
       where: {
         feature: {
@@ -224,6 +244,7 @@ export async function buildVotingResultsExportData(
         },
       ],
     }),
+
     prisma.productQuestionRating.findMany({
       where: {
         product: {
@@ -319,8 +340,7 @@ export async function buildVotingResultsExportData(
       const yesVotes = yesVotesByProductId.get(product.id) ?? 0;
       const noVotes = noVotesByProductId.get(product.id) ?? 0;
       const feedbackResponses = yesVotes + noVotes;
-      const positiveRate =
-        activeStudents > 0 ? yesVotes / activeStudents : 0;
+      const positiveRate = activeGroups > 0 ? yesVotes / activeGroups : 0;
 
       return {
         productId: product.id,
@@ -361,10 +381,12 @@ export async function buildVotingResultsExportData(
       product: feedback.product.title,
       group: feedback.product.group.name,
       category: feedback.product.category?.name ?? "",
-      studentNumber: feedback.member?.studentNumber ?? "",
+      votingGroup: feedback.group.name,
+      submittedByStudentNumber: feedback.member?.studentNumber ?? "",
       decision: feedback.decision,
       reason: feedback.reason ?? "",
       createdAt: feedback.createdAt,
+      updatedAt: feedback.updatedAt,
     }));
 
   const featureRatingRows: FeatureRatingExportRow[] =
@@ -410,6 +432,7 @@ export async function buildVotingResultsExportData(
   return {
     edition,
     generatedAt: new Date(),
+    activeGroups,
     activeStudents,
     publishedProducts: rankedProductRows.length,
     totalYesVotes,
