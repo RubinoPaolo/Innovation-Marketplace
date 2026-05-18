@@ -85,12 +85,12 @@ const DEFAULT_EVALUATION_QUESTIONS = [
   },
   {
     key: "too-costly",
-    prompt: "Rate if the product is too costly.",
+    prompt: "Rate if the product is too costly. (higher if it is cheap or has a good value for money)",
     sortOrder: 5,
   },
   {
     key: "not-innovative",
-    prompt: "Rate if the product is not innovative.",
+    prompt: "Rate if the product is not innovative. (higher if it lacks innovation)",
     sortOrder: 6,
   },
 ];
