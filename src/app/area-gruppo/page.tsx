@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { GroupProductForm } from "@/components/group-product-form";
-import { GroupProductWithdrawButton } from "@/components/group-product-withdraw-button";
 import { GroupUpdateRequestForm } from "@/components/group-update-request-form";
 import { SiteHeader } from "@/components/site-header";
 import { prisma } from "@/lib/prisma";
@@ -29,18 +28,18 @@ function getProductStatusLabel(status: string | undefined): string {
 
 function getProductStatusClasses(status: string | undefined): string {
   if (status === "PUBLISHED") {
-    return "bg-emerald-100 text-emerald-800";
+    return "border border-emerald-200 bg-emerald-50 text-emerald-800";
   }
 
-  return "bg-amber-100 text-amber-800";
+  return "border border-amber-200 bg-amber-50 text-amber-800";
 }
 
 function getReviewedRequestStatusClasses(status: string): string {
   if (status === "APPROVED") {
-    return "bg-emerald-100 text-emerald-800";
+    return "border border-emerald-200 bg-emerald-50 text-emerald-800";
   }
 
-  return "bg-rose-100 text-rose-800";
+  return "border border-rose-200 bg-rose-50 text-rose-800";
 }
 
 export default async function GroupAreaPage() {
@@ -219,61 +218,58 @@ export default async function GroupAreaPage() {
     ) ?? [];
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-950">
+    <div className="premium-page min-h-screen text-slate-950">
       <SiteHeader />
 
-      <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 lg:px-12">
+      <main className="premium-shell py-8 sm:py-10 lg:py-12">
         <section className="space-y-8">
-          <div className="space-y-4">
-            <p className="text-sm font-black uppercase tracking-[0.24em] text-slate-500">
-              Group area · {activeEdition.name}
-            </p>
+          <div className="premium-hero rounded-[2.4rem] px-5 py-6 sm:px-7 sm:py-8 lg:px-8 lg:py-9">
+            <div className="relative z-10 flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-4xl space-y-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="premium-kicker">Group area</span>
+                  <span className="premium-chip inline-flex items-center rounded-full px-4 py-2 text-sm font-bold text-slate-700">
+                    {activeEdition.name}
+                  </span>
+                </div>
 
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div className="space-y-3">
-                <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
+                <h1 className="text-4xl font-black leading-[0.98] tracking-[-0.06em] text-slate-950 sm:text-5xl lg:text-6xl">
                   {currentSession.member.group.name}
                 </h1>
 
-                <p className="max-w-3xl text-base leading-8 text-slate-600 sm:text-lg">
-                  Manage your innovation draft, prepare media for publishing
-                  and submit formal requests when your group data needs to
-                  change.
+                <p className="max-w-3xl text-base font-medium leading-8 text-slate-600 sm:text-lg">
+                  Manage your innovation proposal, prepare it for publication and submit formal requests when your group data needs to change.
                 </p>
               </div>
 
               <Link
                 href="/catalogo"
-                className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-6 text-sm font-bold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-200"
+                className="premium-button-secondary inline-flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
               >
                 Go to catalog
               </Link>
             </div>
           </div>
 
-          <section className="grid gap-6 lg:grid-cols-[1fr_0.86fr] lg:items-start">
-            <article className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.82fr)] xl:items-start">
+            <article className="premium-surface-strong rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
               <div className="space-y-3">
-                <p className="text-sm font-black uppercase tracking-[0.22em] text-slate-500">
-                  Product workspace
-                </p>
-                <h2 className="text-2xl font-black tracking-tight text-slate-950">
-                  Build the product profile
+                <p className="premium-kicker">Product workspace</p>
+                <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950">
+                  Build the product profile.
                 </h2>
-                <p className="text-sm leading-7 text-slate-600">
-                  Save the core product information here. Images and final
-                  publishing are managed from the dedicated media and
-                  publishing page.
+                <p className="max-w-3xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
+                  Save the core product information here. Images and final publishing are managed from the media page after the draft exists.
                 </p>
               </div>
 
               <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-3xl bg-slate-100 p-5">
-                  <p className="text-sm font-semibold text-slate-500">
+                <div className="premium-stat-card rounded-[1.7rem] p-5">
+                  <p className="relative z-10 text-sm font-bold text-slate-500">
                     Product status
                   </p>
                   <span
-                    className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-black ${getProductStatusClasses(
+                    className={`relative z-10 mt-4 inline-flex rounded-full px-3 py-1 text-xs font-black ${getProductStatusClasses(
                       product?.status,
                     )}`}
                   >
@@ -281,57 +277,42 @@ export default async function GroupAreaPage() {
                   </span>
                 </div>
 
-                <div className="rounded-3xl bg-slate-100 p-5">
-                  <p className="text-sm font-semibold text-slate-500">
+                <div className="premium-stat-card rounded-[1.7rem] p-5">
+                  <p className="relative z-10 text-sm font-bold text-slate-500">
                     Saved images
                   </p>
-                  <p className="mt-3 text-3xl font-black text-slate-950">
+                  <p className="relative z-10 mt-4 text-4xl font-black tracking-tight text-slate-950">
                     {product?.images.length ?? 0}
                   </p>
                 </div>
 
-                <div className="rounded-3xl bg-slate-100 p-5">
-                  <p className="text-sm font-semibold text-slate-500">
+                <div className="premium-stat-card rounded-[1.7rem] p-5">
+                  <p className="relative z-10 text-sm font-bold text-slate-500">
                     Active members
                   </p>
-                  <p className="mt-3 text-3xl font-black text-slate-950">
+                  <p className="relative z-10 mt-4 text-4xl font-black tracking-tight text-slate-950">
                     {activeMembers.length}
                   </p>
                 </div>
 
-                <div className="rounded-3xl bg-slate-100 p-5">
-                  <p className="text-sm font-semibold text-slate-500">
+                <div className="premium-stat-card rounded-[1.7rem] p-5">
+                  <p className="relative z-10 text-sm font-bold text-slate-500">
                     Last saved
                   </p>
-                  <p className="mt-3 text-sm font-black leading-6 text-slate-950">
+                  <p className="relative z-10 mt-4 text-sm font-black leading-6 tracking-tight text-slate-950">
                     {product?.updatedAt
                       ? formatDate(product.updatedAt)
                       : "Not saved yet"}
                   </p>
                 </div>
               </div>
-
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-start">
-                <Link
-                  href="/area-gruppo/media"
-                  className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-slate-950 px-5 text-sm font-bold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-300 sm:w-auto"
-                >
-                  Manage images and publishing
-                </Link>
-
-                {product?.status === "PUBLISHED" ? (
-                  <GroupProductWithdrawButton productTitle={product.title} />
-                ) : null}
-              </div>
             </article>
 
-            <aside className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <aside className="premium-surface rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
               <div className="space-y-3">
-                <p className="text-sm font-black uppercase tracking-[0.22em] text-slate-500">
-                  Group roster
-                </p>
-                <h2 className="text-2xl font-black tracking-tight text-slate-950">
-                  Active student IDs
+                <p className="premium-kicker">Group roster</p>
+                <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950">
+                  Active student IDs.
                 </h2>
               </div>
 
@@ -339,7 +320,7 @@ export default async function GroupAreaPage() {
                 {activeMembers.map((member) => (
                   <span
                     key={member.studentNumber}
-                    className="rounded-full bg-slate-100 px-3 py-1 text-sm font-black text-slate-700"
+                    className="premium-chip rounded-full px-3 py-1.5 text-sm font-black text-slate-700"
                   >
                     {member.studentNumber}
                   </span>
@@ -347,11 +328,10 @@ export default async function GroupAreaPage() {
               </div>
 
               {pendingGroupUpdateRequest ? (
-                <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm leading-7 text-amber-900">
+                <div className="mt-6 rounded-[1.7rem] border border-amber-200 bg-amber-50/90 p-5 text-sm font-medium leading-7 text-amber-950">
                   <p className="font-black">Pending group update request</p>
                   <p className="mt-2 font-semibold">
-                    Submitted {formatDate(pendingGroupUpdateRequest.createdAt)}
-                    .
+                    Submitted {formatDate(pendingGroupUpdateRequest.createdAt)}.
                   </p>
 
                   {pendingGroupUpdateRequest.requestedGroupName ? (
@@ -382,14 +362,13 @@ export default async function GroupAreaPage() {
                   ) : null}
                 </div>
               ) : (
-                <div className="mt-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm font-semibold leading-7 text-emerald-900">
-                  No pending group update request is currently waiting for
-                  admin review.
+                <div className="mt-6 rounded-[1.7rem] border border-emerald-200 bg-emerald-50/90 p-5 text-sm font-semibold leading-7 text-emerald-950">
+                  No pending group update request is currently waiting for admin review.
                 </div>
               )}
 
               {latestReviewedGroupUpdateRequest ? (
-                <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm leading-7 text-slate-800">
+                <div className="mt-6 rounded-[1.7rem] border border-slate-200 bg-white/76 p-5 text-sm font-medium leading-7 text-slate-800 shadow-sm shadow-slate-900/5">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-black">
                       Latest reviewed group update request
@@ -404,8 +383,7 @@ export default async function GroupAreaPage() {
                   </div>
 
                   <p className="mt-3 font-semibold text-slate-600">
-                    Reviewed{" "}
-                    {formatDate(latestReviewedGroupUpdateRequest.reviewedAt)}.
+                    Reviewed {formatDate(latestReviewedGroupUpdateRequest.reviewedAt)}.
                   </p>
 
                   {latestReviewedGroupUpdateRequest.requestedGroupName ? (
@@ -436,7 +414,7 @@ export default async function GroupAreaPage() {
                   ) : null}
 
                   {latestReviewedGroupUpdateRequest.adminNote ? (
-                    <div className="mt-4 rounded-2xl bg-white p-4">
+                    <div className="mt-4 rounded-[1.4rem] border border-slate-200/80 bg-white/90 p-4">
                       <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
                         Admin note
                       </p>
@@ -454,6 +432,9 @@ export default async function GroupAreaPage() {
             categories={categories}
             badges={badges}
             product={formProduct}
+            publishedProductTitle={
+              product?.status === "PUBLISHED" ? product.title : null
+            }
           />
 
           <GroupUpdateRequestForm

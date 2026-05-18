@@ -25,36 +25,43 @@ export function VotingControlPanel({
   );
 
   return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+    <section className="premium-surface-strong rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-3">
-          <p className="text-sm font-black uppercase tracking-[0.22em] text-slate-500">
-            Voting control
-          </p>
-          <h2 className="text-2xl font-black tracking-tight text-slate-950">
-            {state.isOpen ? "Voting is currently open" : "Voting is currently closed"}
+          <p className="premium-kicker">Voting control</p>
+          <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950">
+            {state.isOpen ? "Voting is currently open." : "Voting is currently closed."}
           </h2>
-          <p className="max-w-3xl text-sm leading-7 text-slate-600">
+          <p className="max-w-3xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
             When voting is open, students can indicate whether they would buy published products. Closing voting freezes new responses.
           </p>
         </div>
 
-        <div className="rounded-3xl bg-slate-100 px-5 py-4">
-          <p className="text-sm font-semibold text-slate-500">Current status</p>
-          <p
-            className={`mt-1 text-lg font-black ${
-              state.isOpen ? "text-emerald-700" : "text-amber-700"
-            }`}
-          >
-            {state.isOpen ? "Open" : "Closed"}
-          </p>
+        <div className="premium-muted min-w-[12rem] rounded-[1.7rem] px-5 py-4">
+          <p className="text-sm font-bold text-slate-500">Current status</p>
+          <div className="mt-2 flex items-center gap-2">
+            <span
+              className={`h-3 w-3 rounded-full ${
+                state.isOpen
+                  ? "bg-emerald-500 shadow-[0_0_0_6px_rgba(16,185,129,0.12)]"
+                  : "bg-amber-500 shadow-[0_0_0_6px_rgba(245,158,11,0.12)]"
+              }`}
+            />
+            <p
+              className={`text-lg font-black ${
+                state.isOpen ? "text-emerald-700" : "text-amber-700"
+              }`}
+            >
+              {state.isOpen ? "Open" : "Closed"}
+            </p>
+          </div>
         </div>
       </div>
 
       <form action={formAction} className="mt-6 space-y-5">
         <div
           aria-live="polite"
-          className={`min-h-6 text-sm font-bold ${
+          className={`min-h-6 text-sm font-black ${
             state.status === "success"
               ? "text-emerald-700"
               : state.status === "error"
@@ -68,7 +75,7 @@ export function VotingControlPanel({
         <button
           type="submit"
           disabled={pending}
-          className="inline-flex h-12 items-center justify-center rounded-2xl bg-slate-950 px-6 text-sm font-bold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:bg-slate-400"
+          className="premium-button-primary inline-flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {pending
             ? "Updating..."

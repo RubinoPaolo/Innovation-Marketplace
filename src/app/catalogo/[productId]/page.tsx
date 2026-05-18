@@ -263,23 +263,23 @@ export default async function ProductDetailPage({
   });
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-950">
+    <div className="premium-page min-h-screen text-slate-950">
       <SiteHeader />
 
-      <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 lg:px-12">
+      <main className="premium-shell py-8 sm:py-10 lg:py-12">
         <div className="mb-6">
           <Link
             href="/catalogo"
-            className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-200"
+            className="premium-button-secondary inline-flex h-11 items-center justify-center rounded-full px-5 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
           >
             Back to catalog
           </Link>
         </div>
 
-        <section className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+        <section className="grid gap-8 xl:grid-cols-[minmax(0,1.02fr)_minmax(24rem,0.98fr)] xl:items-start">
           <div className="space-y-6">
-            <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-              <div className="aspect-[16/10] bg-slate-200">
+            <div className="premium-surface-strong overflow-hidden rounded-[2.2rem]">
+              <div className="aspect-[16/10] bg-slate-200/80">
                 {coverImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -288,7 +288,7 @@ export default async function ProductDetailPage({
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center px-6 text-center text-sm font-semibold text-slate-500">
+                  <div className="flex h-full items-center justify-center px-6 text-center text-sm font-bold text-slate-500">
                     Product image not available yet
                   </div>
                 )}
@@ -300,9 +300,9 @@ export default async function ProductDetailPage({
                 {product.images.map((image) => (
                   <article
                     key={image.id}
-                    className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+                    className="premium-surface overflow-hidden rounded-[1.8rem]"
                   >
-                    <div className="aspect-[16/10] bg-slate-200">
+                    <div className="aspect-[16/10] bg-slate-200/80">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={image.imageUrl}
@@ -315,7 +315,7 @@ export default async function ProductDetailPage({
 
                     {image.isCover ? (
                       <div className="p-4">
-                        <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800">
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800">
                           Cover image
                         </span>
                       </div>
@@ -327,69 +327,71 @@ export default async function ProductDetailPage({
           </div>
 
           <div className="space-y-6">
-            <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-              <div className="flex flex-wrap gap-2">
-                {product.category ? (
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
-                    {product.category.name}
-                  </span>
+            <section className="premium-hero rounded-[2.4rem] px-5 py-6 sm:px-7 sm:py-8 lg:px-8 lg:py-9">
+              <div className="relative z-10 space-y-5">
+                <div className="flex flex-wrap gap-2">
+                  {product.category ? (
+                    <span className="premium-chip rounded-full px-3 py-1 text-xs font-black text-slate-700">
+                      {product.category.name}
+                    </span>
+                  ) : null}
+
+                  {product.badges.map((productBadge) => (
+                    <span
+                      key={`${product.id}-${productBadge.badgeId}`}
+                      className="premium-chip rounded-full px-3 py-1 text-xs font-black text-slate-700"
+                    >
+                      {productBadge.badge.name}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="space-y-4">
+                  <p className="premium-kicker">
+                    {activeEdition.name} · Group {product.group.name}
+                  </p>
+
+                  <h1 className="text-4xl font-black leading-[0.98] tracking-[-0.06em] text-slate-950 sm:text-5xl lg:text-6xl">
+                    {product.title}
+                  </h1>
+
+                  <p className="text-3xl font-black tracking-tight text-slate-950">
+                    {formatPrice(product.priceCents)}
+                  </p>
+                </div>
+
+                {product.shortDescription ? (
+                  <p className="text-base font-medium leading-8 text-slate-600">
+                    {product.shortDescription}
+                  </p>
                 ) : null}
-
-                {product.badges.map((productBadge) => (
-                  <span
-                    key={`${product.id}-${productBadge.badgeId}`}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-700"
-                  >
-                    {productBadge.badge.name}
-                  </span>
-                ))}
               </div>
-
-              <div className="mt-5 space-y-4">
-                <p className="text-sm font-bold uppercase tracking-[0.22em] text-slate-500">
-                  {activeEdition.name} · Group {product.group.name}
-                </p>
-
-                <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
-                  {product.title}
-                </h1>
-
-                <p className="text-3xl font-black text-slate-950">
-                  {formatPrice(product.priceCents)}
-                </p>
-              </div>
-
-              {product.shortDescription ? (
-                <p className="mt-6 text-base leading-8 text-slate-600">
-                  {product.shortDescription}
-                </p>
-              ) : null}
             </section>
 
-            <section className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-                <p className="text-sm font-semibold text-slate-500">
+            <section className="grid gap-4 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
+              <div className="premium-stat-card rounded-[1.8rem] p-5">
+                <p className="relative z-10 text-sm font-bold text-slate-500">
                   Yes votes
                 </p>
-                <p className="mt-3 text-4xl font-black text-slate-950">
+                <p className="relative z-10 mt-4 text-4xl font-black tracking-tight text-slate-950">
                   {yesCount}
                 </p>
               </div>
 
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-                <p className="text-sm font-semibold text-slate-500">
+              <div className="premium-stat-card rounded-[1.8rem] p-5">
+                <p className="relative z-10 text-sm font-bold text-slate-500">
                   No votes
                 </p>
-                <p className="mt-3 text-4xl font-black text-slate-950">
+                <p className="relative z-10 mt-4 text-4xl font-black tracking-tight text-slate-950">
                   {noCount}
                 </p>
               </div>
 
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-                <p className="text-sm font-semibold text-slate-500">
+              <div className="premium-stat-card rounded-[1.8rem] p-5">
+                <p className="relative z-10 text-sm font-bold text-slate-500">
                   Positive share
                 </p>
-                <p className="mt-3 text-4xl font-black text-slate-950">
+                <p className="relative z-10 mt-4 text-4xl font-black tracking-tight text-slate-950">
                   {formatPercentage(yesCount, totalStudents)}
                 </p>
               </div>
@@ -397,17 +399,15 @@ export default async function ProductDetailPage({
           </div>
         </section>
 
-        <section className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
+        <section className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1.08fr)_minmax(23rem,0.92fr)] xl:items-start">
           <div className="space-y-6">
             {product.description ? (
-              <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-                <p className="text-sm font-black uppercase tracking-[0.22em] text-slate-500">
-                  Product description
-                </p>
-                <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-950">
-                  Full product overview
+              <section className="premium-surface-strong rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
+                <p className="premium-kicker">Product description</p>
+                <h2 className="mt-3 text-3xl font-black tracking-[-0.045em] text-slate-950">
+                  Full product overview.
                 </h2>
-                <p className="mt-5 whitespace-pre-line text-base leading-8 text-slate-600">
+                <p className="mt-5 whitespace-pre-line text-base font-medium leading-8 text-slate-600">
                   {product.description}
                 </p>
               </section>
@@ -440,20 +440,17 @@ export default async function ProductDetailPage({
           />
         </section>
 
-        <section className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-          <p className="text-sm font-black uppercase tracking-[0.22em] text-slate-500">
-            Student feedback
-          </p>
-          <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-950">
-            What classmates say about this product
+        <section className="premium-surface-strong mt-8 rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
+          <p className="premium-kicker">Student feedback</p>
+          <h2 className="mt-3 text-3xl font-black tracking-[-0.045em] text-slate-950">
+            What classmates say about this product.
           </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
-            Every response includes a Yes or No decision. The explanation is
-            optional, like a short review.
+          <p className="mt-3 max-w-3xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
+            Every response includes a Yes or No decision. The explanation is optional, like a short review.
           </p>
 
           {product.interests.length === 0 ? (
-            <div className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm font-semibold leading-7 text-slate-600">
+            <div className="premium-muted mt-6 rounded-[1.7rem] p-6 text-sm font-semibold leading-7 text-slate-600">
               No feedback has been submitted yet.
             </div>
           ) : (
@@ -461,20 +458,20 @@ export default async function ProductDetailPage({
               {product.interests.map((interest, index) => (
                 <article
                   key={interest.id}
-                  className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
+                  className="premium-muted rounded-[1.7rem] p-5"
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex flex-wrap items-center gap-3">
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-black ${
+                        className={`rounded-full border px-3 py-1 text-xs font-black ${
                           interest.decision === "YES"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-rose-100 text-rose-800"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                            : "border-rose-200 bg-rose-50 text-rose-800"
                         }`}
                       >
                         {interest.decision === "YES" ? "Yes" : "No"}
                       </span>
-                      <span className="text-sm font-bold text-slate-700">
+                      <span className="text-sm font-black text-slate-700">
                         Feedback #{product.interests.length - index}
                       </span>
                     </div>
@@ -484,7 +481,7 @@ export default async function ProductDetailPage({
                     </time>
                   </div>
 
-                  <p className="mt-4 text-sm leading-7 text-slate-700">
+                  <p className="mt-4 text-sm font-medium leading-7 text-slate-700">
                     {interest.reason?.trim()
                       ? interest.reason
                       : "No written explanation was provided."}
