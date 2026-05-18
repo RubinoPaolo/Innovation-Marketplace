@@ -2,6 +2,10 @@ import Link from "next/link";
 import { logoutStudent } from "@/app/actions/logout-student";
 import { getCurrentStudentSession } from "@/lib/student-session";
 
+function maskStudentId(studentNumber: string): string {
+  return "•".repeat(Math.max(studentNumber.length, 1));
+}
+
 export async function SiteHeader() {
   const currentSession = await getCurrentStudentSession();
 
@@ -69,7 +73,8 @@ export async function SiteHeader() {
                   {currentSession.member.group.name}
                 </p>
                 <p className="mt-0.5 text-xs font-semibold text-slate-500">
-                  Student ID {currentSession.member.studentNumber}
+                  Student ID{" "}
+                  {maskStudentId(currentSession.member.studentNumber)}
                 </p>
               </div>
 

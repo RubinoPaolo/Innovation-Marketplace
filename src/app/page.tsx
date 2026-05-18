@@ -16,6 +16,10 @@ function getNoticeTone(level: string): string {
   }
 }
 
+function maskStudentId(studentNumber: string): string {
+  return "•".repeat(Math.max(studentNumber.length, 1));
+}
+
 export default async function HomePage() {
   const activeEdition = await getActiveCourseEdition();
 
@@ -207,7 +211,7 @@ export default async function HomePage() {
                           Student ID
                         </p>
                         <p className="mt-2 text-lg font-black tracking-tight text-slate-950">
-                          {currentSession.member.studentNumber}
+                          {maskStudentId(currentSession.member.studentNumber)}
                         </p>
                       </div>
                     </div>

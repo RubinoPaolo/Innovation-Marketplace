@@ -57,9 +57,10 @@ export function StudentAccessForm({ groups }: StudentAccessFormProps) {
         <input
           id="studentNumber"
           name="studentNumber"
-          type="text"
+          type="password"
           inputMode="numeric"
           autoComplete="off"
+          spellCheck={false}
           placeholder="Enter your student ID"
           required
           className="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-base text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-900 focus:ring-4 focus:ring-slate-200"
