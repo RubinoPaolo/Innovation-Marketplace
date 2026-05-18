@@ -31,12 +31,12 @@ function formatPrice(priceCents: number): string {
   }).format(priceCents / 100);
 }
 
-function formatPercentage(yesCount: number, totalStudents: number): string {
-  if (totalStudents <= 0) {
+function formatPercentage(yesCount: number, totalGroups: number): string {
+  if (totalGroups <= 0) {
     return "0%";
   }
 
-  const percentage = (yesCount / totalStudents) * 100;
+  const percentage = (yesCount / totalGroups) * 100;
 
   return (
     new Intl.NumberFormat("en-GB", {
@@ -84,7 +84,7 @@ export default async function LeaderboardPage() {
     redirect("/");
   }
 
-  const [products, totalStudents, totalYesVotes] = await Promise.all([
+  const [products, totalGroups, totalYesVotes] = await Promise.all([
     prisma.product.findMany({
       where: {
         status: "PUBLISHED",
@@ -129,7 +129,7 @@ export default async function LeaderboardPage() {
         },
       },
     }),
-    prisma.groupMember.count({
+    prisma.group.count({
       where: {
         editionId: activeEdition.id,
         isActive: true,
@@ -168,11 +168,12 @@ export default async function LeaderboardPage() {
                 </div>
 
                 <h1 className="text-4xl font-black leading-[0.98] tracking-[-0.06em] text-slate-950 sm:text-5xl lg:text-6xl">
-                  The products receiving the strongest positive feedback.
+                  The products receiving the strongest positive group feedback.
                 </h1>
 
                 <p className="max-w-3xl text-base font-medium leading-8 text-slate-600 sm:text-lg">
-                  Rankings are based on the number of students who selected Yes for each published product.
+                  Rankings are based on the number of groups that selected Yes
+                  for each published product.
                 </p>
               </div>
 
@@ -197,10 +198,10 @@ export default async function LeaderboardPage() {
 
                 <article className="premium-stat-card rounded-[1.8rem] p-5">
                   <p className="relative z-10 text-sm font-bold text-slate-500">
-                    Active students
+                    Active groups
                   </p>
                   <p className="relative z-10 mt-4 text-4xl font-black tracking-tight text-slate-950">
-                    {totalStudents}
+                    {totalGroups}
                   </p>
                 </article>
 
@@ -219,12 +220,15 @@ export default async function LeaderboardPage() {
           {rankedProducts.length === 0 ? (
             <section className="premium-surface-strong rounded-[2.2rem] p-6 text-center sm:p-10 lg:p-12">
               <div className="mx-auto max-w-2xl space-y-5">
-                <p className="premium-kicker justify-center">Ranking not available yet</p>
+                <p className="premium-kicker justify-center">
+                  Ranking not available yet
+                </p>
                 <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950 sm:text-4xl">
                   No published products to rank.
                 </h2>
                 <p className="text-base font-medium leading-8 text-slate-600">
-                  Once groups publish their products, they will appear here and the ranking will update automatically as students vote.
+                  Once groups publish their products, they will appear here and
+                  the ranking will update automatically as groups vote.
                 </p>
                 <Link
                   href="/catalogo"
@@ -311,7 +315,7 @@ export default async function LeaderboardPage() {
                                 Yes share
                               </p>
                               <p className="mt-2 text-base font-black tracking-tight text-slate-950">
-                                {formatPercentage(yesVotes, totalStudents)}
+                                {formatPercentage(yesVotes, totalGroups)}
                               </p>
                             </div>
                           </div>
@@ -405,7 +409,7 @@ export default async function LeaderboardPage() {
                               Yes share
                             </p>
                             <p className="mt-2 text-lg font-black tracking-tight text-slate-950">
-                              {formatPercentage(yesVotes, totalStudents)}
+                              {formatPercentage(yesVotes, totalGroups)}
                             </p>
                           </div>
 

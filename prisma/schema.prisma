@@ -22,17 +22,18 @@ model CourseEdition {
 }
 
 model Group {
-  id        Int             @id @default(autoincrement())
-  editionId Int?
-  edition   CourseEdition?  @relation(fields: [editionId], references: [id], onDelete: Cascade)
-  name      String
-  slug      String
-  isActive  Boolean         @default(true)
-  members   GroupMember[]
-  product   Product?
-  requests  GroupRequest[]
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  id                    Int                @id @default(autoincrement())
+  editionId             Int?
+  edition               CourseEdition?     @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  name                  String
+  slug                  String
+  isActive              Boolean            @default(true)
+  members               GroupMember[]
+  product               Product?
+  requests              GroupRequest[]
+  purchaseInterestsCast PurchaseInterest[] @relation("VotingGroupInterests")
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
 
   @@unique([editionId, name])
   @@unique([editionId, slug])
@@ -215,15 +216,19 @@ model ProductBadge {
 model PurchaseInterest {
   id        Int         @id @default(autoincrement())
   productId Int
-  memberId  Int
+  groupId   Int
+  memberId  Int?
   decision  String      @default("YES")
   reason    String?
   product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  member    GroupMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  group     Group       @relation("VotingGroupInterests", fields: [groupId], references: [id], onDelete: Cascade)
+  member    GroupMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
   createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
-  @@unique([productId, memberId])
+  @@unique([productId, groupId])
   @@index([productId])
+  @@index([groupId])
   @@index([memberId])
   @@index([decision])
 }

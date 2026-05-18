@@ -361,7 +361,7 @@ export async function buildVotingResultsExportData(
       product: feedback.product.title,
       group: feedback.product.group.name,
       category: feedback.product.category?.name ?? "",
-      studentNumber: feedback.member.studentNumber,
+      studentNumber: feedback.member?.studentNumber ?? "",
       decision: feedback.decision,
       reason: feedback.reason ?? "",
       createdAt: feedback.createdAt,

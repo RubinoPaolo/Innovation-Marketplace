@@ -102,7 +102,7 @@ export async function togglePurchaseInterest(
     return {
       ...previousState,
       status: "error",
-      message: "Choose either Yes or No before saving your feedback.",
+      message: "Choose either Yes or No before saving your group's feedback.",
     };
   }
 
@@ -162,17 +162,19 @@ export async function togglePurchaseInterest(
 
   await prisma.purchaseInterest.upsert({
     where: {
-      productId_memberId: {
+      productId_groupId: {
         productId: product.id,
-        memberId: currentSession.member.id,
+        groupId: currentSession.member.groupId,
       },
     },
     update: {
+      memberId: currentSession.member.id,
       decision,
       reason: reason || null,
     },
     create: {
       productId: product.id,
+      groupId: currentSession.member.groupId,
       memberId: currentSession.member.id,
       decision,
       reason: reason || null,
@@ -187,7 +189,7 @@ export async function togglePurchaseInterest(
 
   return {
     status: "success",
-    message: "Your feedback has been saved.",
+    message: "Your group's feedback has been saved.",
     decision,
     reason,
     yesCount: counts.yesCount,

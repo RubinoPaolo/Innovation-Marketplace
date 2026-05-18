@@ -10,15 +10,15 @@ import {
 type PurchaseInterestPanelProps = {
   productId: number;
   initialState: PurchaseInterestState;
-  totalStudents: number;
+  totalGroups: number;
 };
 
-function formatPercentage(yesCount: number, totalStudents: number): string {
-  if (totalStudents <= 0) {
+function formatPercentage(yesCount: number, totalGroups: number): string {
+  if (totalGroups <= 0) {
     return "0%";
   }
 
-  const percentage = (yesCount / totalStudents) * 100;
+  const percentage = (yesCount / totalGroups) * 100;
 
   return (
     new Intl.NumberFormat("en-GB", {
@@ -30,7 +30,7 @@ function formatPercentage(yesCount: number, totalStudents: number): string {
 export function PurchaseInterestPanel({
   productId,
   initialState,
-  totalStudents,
+  totalGroups,
 }: PurchaseInterestPanelProps) {
   const [state, formAction, pending] = useActionState(
     togglePurchaseInterest,
@@ -51,12 +51,13 @@ export function PurchaseInterestPanel({
   return (
     <section className="premium-surface-strong rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
       <div className="space-y-3">
-        <p className="premium-kicker">Product feedback</p>
+        <p className="premium-kicker">Group product vote</p>
         <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950">
-          Would you buy this product?
+          Would your group buy this product?
         </h2>
         <p className="max-w-3xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
-          Select Yes or No. You may optionally explain the reason behind your choice.
+          Each group can submit one Yes or No vote for this product. Any member
+          of the group can create or update the shared vote.
         </p>
       </div>
 
@@ -77,10 +78,10 @@ export function PurchaseInterestPanel({
 
         <div className="premium-muted rounded-[1.7rem] p-5">
           <p className="text-sm font-black text-slate-500">
-            Positive share
+            Positive group share
           </p>
           <p className="mt-2 text-4xl font-black tracking-tight text-slate-950">
-            {formatPercentage(state.yesCount, totalStudents)}
+            {formatPercentage(state.yesCount, totalGroups)}
           </p>
         </div>
       </div>
@@ -105,7 +106,7 @@ export function PurchaseInterestPanel({
         <input type="hidden" name="productId" value={productId} />
 
         <fieldset className="space-y-3">
-          <legend className="premium-kicker">Your choice</legend>
+          <legend className="premium-kicker">Your group's choice</legend>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <label
@@ -127,7 +128,7 @@ export function PurchaseInterestPanel({
                 Yes
               </span>
               <span className="mt-1 block text-sm font-medium leading-6 text-slate-600">
-                I would consider buying this product.
+                Our group would consider buying this product.
               </span>
             </label>
 
@@ -150,7 +151,7 @@ export function PurchaseInterestPanel({
                 No
               </span>
               <span className="mt-1 block text-sm font-medium leading-6 text-slate-600">
-                I would not buy this product.
+                Our group would not buy this product.
               </span>
             </label>
           </div>
@@ -171,7 +172,7 @@ export function PurchaseInterestPanel({
               onChange={(event) => setReason(event.target.value)}
               maxLength={800}
               rows={4}
-              placeholder="Explain why you chose Yes or No..."
+              placeholder="Explain why your group chose Yes or No..."
               className="w-full rounded-[1.7rem] border border-slate-200 bg-white px-4 py-3 text-sm font-medium leading-7 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
             />
             <p className="text-xs font-semibold text-slate-500">
@@ -189,7 +190,7 @@ export function PurchaseInterestPanel({
             ? "Saving..."
             : !state.votingOpen
               ? "Voting closed"
-              : "Save my feedback"}
+              : "Save group feedback"}
         </button>
       </form>
     </section>

@@ -15,12 +15,12 @@ function formatPrice(priceCents: number): string {
   }).format(priceCents / 100);
 }
 
-function formatPercentage(yesCount: number, totalStudents: number): string {
-  if (totalStudents <= 0) {
+function formatPercentage(yesCount: number, totalGroups: number): string {
+  if (totalGroups <= 0) {
     return "0%";
   }
 
-  const percentage = (yesCount / totalStudents) * 100;
+  const percentage = (yesCount / totalGroups) * 100;
 
   return (
     new Intl.NumberFormat("en-GB", {
@@ -64,7 +64,7 @@ export default async function ProductDetailPage({
 
   const [
     product,
-    totalStudents,
+    totalGroups,
     votingSettings,
     existingInterest,
     evaluationQuestions,
@@ -129,12 +129,12 @@ export default async function ProductDetailPage({
             createdAt: true,
           },
           orderBy: {
-            createdAt: "desc",
+            updatedAt: "desc",
           },
         },
       },
     }),
-    prisma.groupMember.count({
+    prisma.group.count({
       where: {
         editionId: activeEdition.id,
         isActive: true,
@@ -150,9 +150,9 @@ export default async function ProductDetailPage({
     }),
     prisma.purchaseInterest.findUnique({
       where: {
-        productId_memberId: {
+        productId_groupId: {
           productId: parsedProductId,
-          memberId: currentSession.member.id,
+          groupId: currentSession.member.groupId,
         },
       },
       select: {
@@ -389,10 +389,10 @@ export default async function ProductDetailPage({
 
               <div className="premium-stat-card rounded-[1.8rem] p-5">
                 <p className="relative z-10 text-sm font-bold text-slate-500">
-                  Positive share
+                  Positive group share
                 </p>
                 <p className="relative z-10 mt-4 text-4xl font-black tracking-tight text-slate-950">
-                  {formatPercentage(yesCount, totalStudents)}
+                  {formatPercentage(yesCount, totalGroups)}
                 </p>
               </div>
             </section>
@@ -427,7 +427,7 @@ export default async function ProductDetailPage({
 
           <PurchaseInterestPanel
             productId={product.id}
-            totalStudents={totalStudents}
+            totalGroups={totalGroups}
             initialState={{
               status: "idle",
               message: "",
@@ -441,17 +441,18 @@ export default async function ProductDetailPage({
         </section>
 
         <section className="premium-surface-strong mt-8 rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
-          <p className="premium-kicker">Student feedback</p>
+          <p className="premium-kicker">Group feedback</p>
           <h2 className="mt-3 text-3xl font-black tracking-[-0.045em] text-slate-950">
-            What classmates say about this product.
+            What groups say about this product.
           </h2>
           <p className="mt-3 max-w-3xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
-            Every response includes a Yes or No decision. The explanation is optional, like a short review.
+            Every response includes one shared Yes or No group decision. The
+            explanation is optional, like a short review.
           </p>
 
           {product.interests.length === 0 ? (
             <div className="premium-muted mt-6 rounded-[1.7rem] p-6 text-sm font-semibold leading-7 text-slate-600">
-              No feedback has been submitted yet.
+              No group feedback has been submitted yet.
             </div>
           ) : (
             <div className="mt-6 grid gap-4">
@@ -472,7 +473,7 @@ export default async function ProductDetailPage({
                         {interest.decision === "YES" ? "Yes" : "No"}
                       </span>
                       <span className="text-sm font-black text-slate-700">
-                        Feedback #{product.interests.length - index}
+                        Group feedback #{product.interests.length - index}
                       </span>
                     </div>
 
