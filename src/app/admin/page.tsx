@@ -1,10 +1,18 @@
 import Link from "next/link";
 import { AdminLoginForm } from "@/components/admin-login-form";
+import { AdminHomeNoticesPanel } from "@/components/admin-home-notices-panel";
 import { VotingControlPanel } from "@/components/voting-control-panel";
 import { logoutAdmin } from "@/app/actions/admin-auth";
 import { prisma } from "@/lib/prisma";
 import { getCurrentAdminSession } from "@/lib/admin-session";
 import { getActiveCourseEdition } from "@/lib/active-edition";
+
+function formatDateTime(date: Date): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
 
 export default async function AdminPage() {
   const [adminSession, activeEdition] = await Promise.all([
@@ -31,7 +39,9 @@ export default async function AdminPage() {
                   Manage the voting session and the course environment.
                 </h1>
                 <p className="max-w-3xl text-base font-medium leading-8 text-slate-600 sm:text-lg">
-                  This area is reserved for platform supervision. Sign in with the configured admin password to manage voting, groups and course data.
+                  This area is reserved for platform supervision. Sign in with
+                  the configured admin password to manage voting, groups and
+                  course data.
                 </p>
               </div>
             </div>
@@ -86,12 +96,16 @@ export default async function AdminPage() {
           </div>
 
           <div className="rounded-[2.2rem] border border-rose-200 bg-rose-50/92 p-6 shadow-sm shadow-rose-900/5 sm:p-8">
-            <p className="premium-kicker text-rose-700">Configuration required</p>
+            <p className="premium-kicker text-rose-700">
+              Configuration required
+            </p>
             <h1 className="mt-4 text-4xl font-black tracking-[-0.055em] text-slate-950 sm:text-5xl">
               No active course edition is configured.
             </h1>
             <p className="mt-4 max-w-3xl text-base font-medium leading-8 text-slate-700">
-              The platform cannot manage voting, groups, requests or edition-specific statistics until a course edition is marked as active.
+              The platform cannot manage voting, groups, requests or
+              edition-specific statistics until a course edition is marked as
+              active.
             </p>
           </div>
         </section>
@@ -103,9 +117,10 @@ export default async function AdminPage() {
     votingSettings,
     publishedProducts,
     activeStudents,
-    totalInterests,
+    totalResponses,
     activeGroups,
     pendingGroupRequests,
+    homeNotices,
   ] = await Promise.all([
     prisma.votingSettings.findUnique({
       where: {
@@ -155,6 +170,22 @@ export default async function AdminPage() {
         status: "PENDING",
       },
     }),
+    prisma.homeNotice.findMany({
+      where: {
+        editionId: activeEdition.id,
+      },
+      select: {
+        id: true,
+        title: true,
+        message: true,
+        level: true,
+        isPublished: true,
+        updatedAt: true,
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+    }),
   ]);
 
   const isOpen = votingSettings?.isOpen ?? false;
@@ -182,7 +213,9 @@ export default async function AdminPage() {
                 Voting and course administration.
               </h1>
               <p className="max-w-3xl text-base font-medium leading-8 text-slate-600 sm:text-lg">
-                Open or close student voting, monitor the active edition, manage groups and review incoming requests.
+                Open or close student voting, monitor the active edition,
+                manage groups, review incoming requests and publish homepage
+                announcements.
               </p>
             </div>
 
@@ -240,10 +273,10 @@ export default async function AdminPage() {
 
           <article className="premium-stat-card rounded-[1.8rem] p-5">
             <p className="relative z-10 text-sm font-bold text-slate-500">
-              Purchase-interest votes
+              Product responses
             </p>
             <p className="relative z-10 mt-4 text-3xl font-black tracking-tight text-slate-950">
-              {totalInterests}
+              {totalResponses}
             </p>
           </article>
 
@@ -268,15 +301,27 @@ export default async function AdminPage() {
 
         <VotingControlPanel initialIsOpen={isOpen} />
 
+        <AdminHomeNoticesPanel
+          notices={homeNotices.map((notice) => ({
+            id: notice.id,
+            title: notice.title,
+            message: notice.message,
+            level: notice.level,
+            isPublished: notice.isPublished,
+            updatedAtLabel: formatDateTime(notice.updatedAt),
+          }))}
+        />
+
         <section className="premium-surface-strong rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-3">
               <p className="premium-kicker">Data export</p>
               <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950">
-                Download voting results.
+                Download complete voting data.
               </h2>
               <p className="max-w-3xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
-                Export the ranked published products of the active edition. Choose CSV for a lightweight dataset or XLSX for a polished, formatted workbook.
+                Export the collected data of the active edition. Choose CSV for
+                a lightweight dataset or XLSX for a polished, formatted workbook.
               </p>
             </div>
 
@@ -306,7 +351,9 @@ export default async function AdminPage() {
                 Manage groups and student IDs.
               </h2>
               <p className="text-sm font-medium leading-7 text-slate-600 sm:text-base">
-                Rename groups, suspend or delete them, add or remove student IDs and keep the active edition roster up to date without touching the database manually.
+                Rename groups, suspend or delete them, add or remove student
+                IDs and keep the active edition roster up to date without
+                touching the database manually.
               </p>
             </div>
 
@@ -334,7 +381,9 @@ export default async function AdminPage() {
                 Review creation and update requests.
               </h2>
               <p className="text-sm font-medium leading-7 text-slate-600 sm:text-base">
-                Inspect requests for new groups and update requests sent from the Group area, adjust them before approval and complete the admin decision.
+                Inspect requests for new groups and update requests sent from
+                the Group area, adjust them before approval and complete the
+                admin decision.
               </p>
             </div>
 

@@ -5,6 +5,17 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentStudentSession } from "@/lib/student-session";
 import { getActiveCourseEdition } from "@/lib/active-edition";
 
+function getNoticeTone(level: string): string {
+  switch (level) {
+    case "IMPORTANT":
+      return "border-blue-200 bg-blue-50/90 text-blue-950";
+    case "WARNING":
+      return "border-amber-200 bg-amber-50/90 text-amber-950";
+    default:
+      return "border-slate-200 bg-white/78 text-slate-950";
+  }
+}
+
 export default async function HomePage() {
   const activeEdition = await getActiveCourseEdition();
 
@@ -14,6 +25,7 @@ export default async function HomePage() {
     groupsCount,
     membersCount,
     votingSettings,
+    homeNotices,
   ] = await Promise.all([
     activeEdition
       ? prisma.group.findMany({
@@ -55,6 +67,24 @@ export default async function HomePage() {
           },
         })
       : Promise.resolve(null),
+    activeEdition
+      ? prisma.homeNotice.findMany({
+          where: {
+            editionId: activeEdition.id,
+            isPublished: true,
+          },
+          select: {
+            id: true,
+            title: true,
+            message: true,
+            level: true,
+          },
+          orderBy: {
+            updatedAt: "desc",
+          },
+          take: 3,
+        })
+      : Promise.resolve([]),
   ]);
 
   return (
@@ -75,11 +105,13 @@ export default async function HomePage() {
 
                 <div className="space-y-5">
                   <h1 className="max-w-5xl text-4xl font-black leading-[0.98] tracking-[-0.065em] text-slate-950 sm:text-5xl lg:text-6xl xl:text-[4.35rem]">
-                    Discover, compare and rate the strongest innovation proposals.
+                    Discover, compare and rate the strongest innovation
+                    proposals.
                   </h1>
 
                   <p className="max-w-3xl text-base font-medium leading-8 text-slate-600 sm:text-lg">
-                    Browse the products published by each group and express which ideas you would genuinely consider buying.
+                    Browse the products published by each group and express
+                    which ideas you would genuinely consider buying.
                   </p>
                 </div>
 
@@ -155,7 +187,8 @@ export default async function HomePage() {
                         Welcome back to the platform.
                       </h2>
                       <p className="text-sm font-medium leading-7 text-slate-600 sm:text-base">
-                        Your session is already active. Continue exploring the marketplace without entering your data again.
+                        Your session is already active. Continue exploring the
+                        marketplace without entering your data again.
                       </p>
                     </div>
 
@@ -178,6 +211,42 @@ export default async function HomePage() {
                         </p>
                       </div>
                     </div>
+
+                    {homeNotices.length > 0 ? (
+                      <section className="rounded-[1.8rem] border border-slate-200/80 bg-white/74 p-4 shadow-sm shadow-slate-900/5">
+                        <div className="space-y-2">
+                          <p className="premium-kicker">Notices</p>
+                          <h3 className="text-xl font-black tracking-tight text-slate-950">
+                            Latest announcements
+                          </h3>
+                        </div>
+
+                        <div className="mt-4 space-y-3">
+                          {homeNotices.map((notice) => (
+                            <article
+                              key={notice.id}
+                              className={`rounded-[1.45rem] border p-4 ${getNoticeTone(
+                                notice.level,
+                              )}`}
+                            >
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="rounded-full bg-white/80 px-3 py-1 text-[0.7rem] font-black uppercase tracking-[0.16em]">
+                                  {notice.level}
+                                </span>
+                              </div>
+
+                              <h4 className="mt-3 text-base font-black tracking-tight">
+                                {notice.title}
+                              </h4>
+
+                              <p className="mt-2 whitespace-pre-line text-sm font-semibold leading-7">
+                                {notice.message}
+                              </p>
+                            </article>
+                          ))}
+                        </div>
+                      </section>
+                    ) : null}
                   </div>
 
                   <div className="space-y-4">
@@ -202,13 +271,51 @@ export default async function HomePage() {
                         Enter with group and student ID.
                       </h2>
                       <p className="text-sm font-medium leading-7 text-slate-600 sm:text-base">
-                        Select your group and type your student ID exactly as stored in the active course edition.
+                        Select your group and type your student ID exactly as
+                        stored in the active course edition.
                       </p>
                     </div>
 
+                    {homeNotices.length > 0 ? (
+                      <section className="rounded-[1.8rem] border border-slate-200/80 bg-white/74 p-4 shadow-sm shadow-slate-900/5">
+                        <div className="space-y-2">
+                          <p className="premium-kicker">Notices</p>
+                          <h3 className="text-xl font-black tracking-tight text-slate-950">
+                            Latest announcements
+                          </h3>
+                        </div>
+
+                        <div className="mt-4 space-y-3">
+                          {homeNotices.map((notice) => (
+                            <article
+                              key={notice.id}
+                              className={`rounded-[1.45rem] border p-4 ${getNoticeTone(
+                                notice.level,
+                              )}`}
+                            >
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="rounded-full bg-white/80 px-3 py-1 text-[0.7rem] font-black uppercase tracking-[0.16em]">
+                                  {notice.level}
+                                </span>
+                              </div>
+
+                              <h4 className="mt-3 text-base font-black tracking-tight">
+                                {notice.title}
+                              </h4>
+
+                              <p className="mt-2 whitespace-pre-line text-sm font-semibold leading-7">
+                                {notice.message}
+                              </p>
+                            </article>
+                          ))}
+                        </div>
+                      </section>
+                    ) : null}
+
                     {!activeEdition ? (
                       <div className="rounded-[1.5rem] border border-rose-200 bg-rose-50/90 p-4 text-sm font-bold leading-6 text-rose-800">
-                        No active course edition is configured. Student access is temporarily unavailable.
+                        No active course edition is configured. Student access
+                        is temporarily unavailable.
                       </div>
                     ) : (
                       <div className="rounded-[1.75rem] border border-slate-200/80 bg-white/74 p-4 shadow-sm shadow-slate-900/5 sm:p-5">

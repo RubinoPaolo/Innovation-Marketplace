@@ -16,6 +16,7 @@ model CourseEdition {
   members        GroupMember[]
   votingSettings VotingSettings?
   groupRequests  GroupRequest[]
+  homeNotices    HomeNotice[]
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 }
@@ -272,4 +273,20 @@ model GroupRequestMember {
 
   @@index([requestId])
   @@index([action])
+}
+
+model HomeNotice {
+  id          Int           @id @default(autoincrement())
+  editionId   Int
+  edition     CourseEdition @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  title       String
+  message     String
+  level       String        @default("INFO")
+  isPublished Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([editionId])
+  @@index([editionId, isPublished])
+  @@index([updatedAt])
 }
