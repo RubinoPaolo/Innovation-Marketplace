@@ -14,7 +14,10 @@ export type ProductQuestionRatingState = {
   averageRating: number | null;
   ratingCount: number;
   votingOpen: boolean;
+  isOwnProduct: boolean;
 };
+
+type ProductQuestionRatingIntent = "SAVE" | "WITHDRAW";
 
 function parsePositiveInteger(
   value: FormDataEntryValue | null,
@@ -36,6 +39,18 @@ function parseRating(value: FormDataEntryValue | null): number | null {
   }
 
   return rating;
+}
+
+function parseIntent(
+  value: FormDataEntryValue | null,
+): ProductQuestionRatingIntent {
+  const normalizedValue = String(value ?? "").trim().toUpperCase();
+
+  if (normalizedValue === "WITHDRAW") {
+    return "WITHDRAW";
+  }
+
+  return "SAVE";
 }
 
 async function getQuestionRatingSummary(
@@ -79,6 +94,7 @@ export async function rateProductQuestion(
   const productId = parsePositiveInteger(formData.get("productId"));
   const questionId = parsePositiveInteger(formData.get("questionId"));
   const rating = parseRating(formData.get("rating"));
+  const intent = parseIntent(formData.get("intent"));
 
   if (!currentSession || !activeEdition) {
     return {
@@ -89,7 +105,7 @@ export async function rateProductQuestion(
     };
   }
 
-  if (!productId || !questionId || !rating) {
+  if (!productId || !questionId) {
     return {
       ...previousState,
       status: "error",
@@ -108,6 +124,7 @@ export async function rateProductQuestion(
       },
       select: {
         id: true,
+        groupId: true,
       },
     }),
     prisma.evaluationQuestion.findFirst({
@@ -139,6 +156,61 @@ export async function rateProductQuestion(
   }
 
   const votingOpen = votingSettings?.isOpen ?? false;
+  const isOwnProduct = product.groupId === currentSession.member.groupId;
+
+  if (intent === "WITHDRAW") {
+    if (!votingOpen && !isOwnProduct) {
+      const summary = await getQuestionRatingSummary(product.id, question.id);
+
+      return {
+        ...previousState,
+        ...summary,
+        status: "error",
+        message: "Voting is currently closed.",
+        votingOpen: false,
+        isOwnProduct,
+      };
+    }
+
+    const existingRating = await prisma.productQuestionRating.findUnique({
+      where: {
+        productId_memberId_questionId: {
+          productId: product.id,
+          memberId: currentSession.member.id,
+          questionId: question.id,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingRating) {
+      await prisma.productQuestionRating.delete({
+        where: {
+          id: existingRating.id,
+        },
+      });
+    }
+
+    const summary = await getQuestionRatingSummary(product.id, question.id);
+
+    revalidatePath(`/catalogo/${product.id}`);
+
+    return {
+      status: "success",
+      message: existingRating
+        ? "Your evaluation rating has been withdrawn."
+        : "You had no active evaluation rating to withdraw.",
+      productId: product.id,
+      questionId: question.id,
+      currentRating: null,
+      averageRating: summary.averageRating,
+      ratingCount: summary.ratingCount,
+      votingOpen,
+      isOwnProduct,
+    };
+  }
 
   if (!votingOpen) {
     const summary = await getQuestionRatingSummary(product.id, question.id);
@@ -149,6 +221,29 @@ export async function rateProductQuestion(
       status: "error",
       message: "Voting is currently closed.",
       votingOpen: false,
+      isOwnProduct,
+    };
+  }
+
+  if (isOwnProduct) {
+    const summary = await getQuestionRatingSummary(product.id, question.id);
+
+    return {
+      ...previousState,
+      ...summary,
+      status: "error",
+      message: "Your group cannot evaluate its own product.",
+      votingOpen: true,
+      isOwnProduct,
+    };
+  }
+
+  if (!rating) {
+    return {
+      ...previousState,
+      status: "error",
+      message: "The selected evaluation rating is not valid.",
+      isOwnProduct,
     };
   }
 
@@ -184,5 +279,6 @@ export async function rateProductQuestion(
     averageRating: summary.averageRating,
     ratingCount: summary.ratingCount,
     votingOpen: true,
+    isOwnProduct,
   };
 }

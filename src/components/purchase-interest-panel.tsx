@@ -11,6 +11,7 @@ type PurchaseInterestPanelProps = {
   productId: number;
   initialState: PurchaseInterestState;
   totalGroups: number;
+  isOwnProduct: boolean;
 };
 
 function formatPercentage(yesCount: number, totalGroups: number): string {
@@ -31,6 +32,7 @@ export function PurchaseInterestPanel({
   productId,
   initialState,
   totalGroups,
+  isOwnProduct,
 }: PurchaseInterestPanelProps) {
   const [state, formAction, pending] = useActionState(
     togglePurchaseInterest,
@@ -48,6 +50,12 @@ export function PurchaseInterestPanel({
     setReason(state.reason);
   }, [state.decision, state.reason]);
 
+  const canSaveVote =
+    state.votingOpen && !isOwnProduct && !pending && Boolean(selectedDecision);
+
+  const canWithdrawVote =
+    Boolean(state.decision) && (state.votingOpen || isOwnProduct) && !pending;
+
   return (
     <section className="premium-surface-strong rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
       <div className="space-y-3">
@@ -56,8 +64,9 @@ export function PurchaseInterestPanel({
           Would your group buy this product?
         </h2>
         <p className="max-w-3xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
-          Each group can submit one Yes or No vote for this product. Any member
-          of the group can create, update or withdraw the shared vote.
+          Each group can submit one Yes or No vote for this product. Groups
+          cannot vote for their own product. Existing self-votes can be
+          withdrawn.
         </p>
       </div>
 
@@ -86,6 +95,12 @@ export function PurchaseInterestPanel({
         </div>
       </div>
 
+      {isOwnProduct ? (
+        <div className="mt-6 rounded-[1.5rem] border border-amber-200 bg-amber-50/90 p-4 text-sm font-bold leading-6 text-amber-900">
+          Your group cannot vote for its own product.
+        </div>
+      ) : null}
+
       <div
         aria-live="polite"
         className={`mt-6 min-h-6 text-sm font-black ${
@@ -97,9 +112,11 @@ export function PurchaseInterestPanel({
         }`}
       >
         {state.message ||
-          (state.votingOpen
-            ? "Voting is open."
-            : "Voting is currently closed.")}
+          (isOwnProduct
+            ? "Self-voting is not allowed."
+            : state.votingOpen
+              ? "Voting is open."
+              : "Voting is currently closed.")}
       </div>
 
       <form action={formAction} className="mt-5 space-y-5">
@@ -114,7 +131,7 @@ export function PurchaseInterestPanel({
                 selectedDecision === "YES"
                   ? "border-emerald-400 bg-emerald-50 shadow-sm shadow-emerald-900/10"
                   : "border-slate-200 bg-white/80 hover:border-slate-300 hover:bg-white"
-              }`}
+              } ${isOwnProduct ? "opacity-70" : ""}`}
             >
               <input
                 type="radio"
@@ -122,6 +139,7 @@ export function PurchaseInterestPanel({
                 value="YES"
                 checked={selectedDecision === "YES"}
                 onChange={() => setSelectedDecision("YES")}
+                disabled={isOwnProduct}
                 className="sr-only"
               />
               <span className="block text-lg font-black text-slate-950">
@@ -137,7 +155,7 @@ export function PurchaseInterestPanel({
                 selectedDecision === "NO"
                   ? "border-rose-400 bg-rose-50 shadow-sm shadow-rose-900/10"
                   : "border-slate-200 bg-white/80 hover:border-slate-300 hover:bg-white"
-              }`}
+              } ${isOwnProduct ? "opacity-70" : ""}`}
             >
               <input
                 type="radio"
@@ -145,6 +163,7 @@ export function PurchaseInterestPanel({
                 value="NO"
                 checked={selectedDecision === "NO"}
                 onChange={() => setSelectedDecision("NO")}
+                disabled={isOwnProduct}
                 className="sr-only"
               />
               <span className="block text-lg font-black text-slate-950">
@@ -157,7 +176,7 @@ export function PurchaseInterestPanel({
           </div>
         </fieldset>
 
-        {selectedDecision ? (
+        {selectedDecision && !isOwnProduct ? (
           <div className="space-y-2.5">
             <label
               htmlFor="purchase-feedback-reason"
@@ -186,14 +205,16 @@ export function PurchaseInterestPanel({
             type="submit"
             name="intent"
             value="SAVE"
-            disabled={!state.votingOpen || pending || !selectedDecision}
+            disabled={!canSaveVote}
             className="premium-button-primary inline-flex h-12 w-full items-center justify-center rounded-2xl px-6 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
             {pending
               ? "Saving..."
               : !state.votingOpen
                 ? "Voting closed"
-                : "Save group feedback"}
+                : isOwnProduct
+                  ? "Self-voting blocked"
+                  : "Save group feedback"}
           </button>
 
           {state.decision ? (
@@ -201,7 +222,7 @@ export function PurchaseInterestPanel({
               type="submit"
               name="intent"
               value="WITHDRAW"
-              disabled={!state.votingOpen || pending}
+              disabled={!canWithdrawVote}
               className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-6 text-sm font-black text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-200 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               {pending ? "Processing..." : "Withdraw group vote"}

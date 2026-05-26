@@ -17,11 +17,13 @@ export type FeatureRatingItem = {
 type FeatureRatingListProps = {
   features: FeatureRatingItem[];
   votingOpen: boolean;
+  isOwnProduct: boolean;
 };
 
 type FeatureRatingCardProps = {
   feature: FeatureRatingItem;
   votingOpen: boolean;
+  isOwnProduct: boolean;
 };
 
 function formatAverageRating(averageRating: number | null): string {
@@ -35,6 +37,7 @@ function formatAverageRating(averageRating: number | null): string {
 function FeatureRatingCard({
   feature,
   votingOpen,
+  isOwnProduct,
 }: FeatureRatingCardProps) {
   const initialState: FeatureRatingState = {
     status: "idle",
@@ -44,12 +47,17 @@ function FeatureRatingCard({
     averageRating: feature.averageRating,
     ratingCount: feature.ratingCount,
     votingOpen,
+    isOwnProduct,
   };
 
   const [state, formAction, pending] = useActionState(
     rateProductFeature,
     initialState,
   );
+
+  const canSaveRating = state.votingOpen && !state.isOwnProduct && !pending;
+  const canWithdrawRating =
+    state.currentRating !== null && (state.votingOpen || state.isOwnProduct);
 
   return (
     <article className="premium-muted rounded-[1.8rem] p-4 sm:p-5">
@@ -83,7 +91,7 @@ function FeatureRatingCard({
                   type="submit"
                   name="rating"
                   value={rating}
-                  disabled={!state.votingOpen || pending}
+                  disabled={!canSaveRating}
                   aria-label={`Rate this feature ${rating} out of 5 stars`}
                   className={`flex h-11 w-11 items-center justify-center rounded-2xl border text-2xl transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-100 ${
                     selected
@@ -97,6 +105,18 @@ function FeatureRatingCard({
             })}
           </div>
 
+          {state.currentRating !== null ? (
+            <button
+              type="submit"
+              name="intent"
+              value="WITHDRAW"
+              disabled={!canWithdrawRating || pending}
+              className="inline-flex h-10 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-4 text-sm font-black text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-200 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {pending ? "Processing..." : "Withdraw feature rating"}
+            </button>
+          ) : null}
+
           <div
             aria-live="polite"
             className={`min-h-5 text-sm font-black ${
@@ -108,9 +128,11 @@ function FeatureRatingCard({
             }`}
           >
             {state.message ||
-              (state.votingOpen
-                ? "Select from 1 to 5 stars."
-                : "Voting is currently closed.")}
+              (state.isOwnProduct
+                ? "Your group cannot rate its own product. Existing self-ratings can be withdrawn."
+                : state.votingOpen
+                  ? "Select from 1 to 5 stars."
+                  : "Voting is currently closed.")}
           </div>
         </form>
       </div>
@@ -121,6 +143,7 @@ function FeatureRatingCard({
 export function FeatureRatingList({
   features,
   votingOpen,
+  isOwnProduct,
 }: FeatureRatingListProps) {
   if (features.length === 0) {
     return null;
@@ -133,7 +156,8 @@ export function FeatureRatingList({
         Rate the strengths of this product.
       </h2>
       <p className="mt-3 max-w-3xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
-        Each feature can be evaluated independently from 1 to 5 stars.
+        Each feature can be evaluated independently from 1 to 5 stars. Groups
+        cannot rate features of their own product.
       </p>
 
       <div className="mt-6 grid gap-4">
@@ -142,6 +166,7 @@ export function FeatureRatingList({
             key={feature.id}
             feature={feature}
             votingOpen={votingOpen}
+            isOwnProduct={isOwnProduct}
           />
         ))}
       </div>

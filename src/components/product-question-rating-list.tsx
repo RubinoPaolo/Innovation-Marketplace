@@ -18,12 +18,14 @@ type ProductQuestionRatingListProps = {
   productId: number;
   questions: ProductQuestionRatingItem[];
   votingOpen: boolean;
+  isOwnProduct: boolean;
 };
 
 type ProductQuestionRatingCardProps = {
   productId: number;
   question: ProductQuestionRatingItem;
   votingOpen: boolean;
+  isOwnProduct: boolean;
 };
 
 function formatAverageRating(averageRating: number | null): string {
@@ -38,6 +40,7 @@ function ProductQuestionRatingCard({
   productId,
   question,
   votingOpen,
+  isOwnProduct,
 }: ProductQuestionRatingCardProps) {
   const initialState: ProductQuestionRatingState = {
     status: "idle",
@@ -48,12 +51,17 @@ function ProductQuestionRatingCard({
     averageRating: question.averageRating,
     ratingCount: question.ratingCount,
     votingOpen,
+    isOwnProduct,
   };
 
   const [state, formAction, pending] = useActionState(
     rateProductQuestion,
     initialState,
   );
+
+  const canSaveRating = state.votingOpen && !state.isOwnProduct && !pending;
+  const canWithdrawRating =
+    state.currentRating !== null && (state.votingOpen || state.isOwnProduct);
 
   return (
     <article className="premium-muted rounded-[1.8rem] p-4 sm:p-5">
@@ -88,7 +96,7 @@ function ProductQuestionRatingCard({
                   type="submit"
                   name="rating"
                   value={rating}
-                  disabled={!state.votingOpen || pending}
+                  disabled={!canSaveRating}
                   aria-label={`Rate this criterion ${rating} out of 5 stars`}
                   className={`flex h-11 w-11 items-center justify-center rounded-2xl border text-2xl transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-100 ${
                     selected
@@ -102,6 +110,18 @@ function ProductQuestionRatingCard({
             })}
           </div>
 
+          {state.currentRating !== null ? (
+            <button
+              type="submit"
+              name="intent"
+              value="WITHDRAW"
+              disabled={!canWithdrawRating || pending}
+              className="inline-flex h-10 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-4 text-sm font-black text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-200 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {pending ? "Processing..." : "Withdraw evaluation rating"}
+            </button>
+          ) : null}
+
           <div
             aria-live="polite"
             className={`min-h-5 text-sm font-black ${
@@ -113,9 +133,11 @@ function ProductQuestionRatingCard({
             }`}
           >
             {state.message ||
-              (state.votingOpen
-                ? "Select from 1 to 5 stars."
-                : "Voting is currently closed.")}
+              (state.isOwnProduct
+                ? "Your group cannot evaluate its own product. Existing self-ratings can be withdrawn."
+                : state.votingOpen
+                  ? "Select from 1 to 5 stars."
+                  : "Voting is currently closed.")}
           </div>
         </form>
       </div>
@@ -127,6 +149,7 @@ export function ProductQuestionRatingList({
   productId,
   questions,
   votingOpen,
+  isOwnProduct,
 }: ProductQuestionRatingListProps) {
   if (questions.length === 0) {
     return null;
@@ -139,7 +162,9 @@ export function ProductQuestionRatingList({
         Rate this product on the evaluation criteria.
       </h2>
       <p className="mt-3 max-w-3xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
-        These questions are optional. Each criterion can be evaluated from 1 to 5 stars based on how much you agree with the statement.
+        These questions are optional. Each criterion can be evaluated from 1 to
+        5 stars based on how much you agree with the statement. Groups cannot
+        evaluate their own product.
       </p>
 
       <div className="mt-6 grid gap-4">
@@ -149,6 +174,7 @@ export function ProductQuestionRatingList({
             productId={productId}
             question={question}
             votingOpen={votingOpen}
+            isOwnProduct={isOwnProduct}
           />
         ))}
       </div>

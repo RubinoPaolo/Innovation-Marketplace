@@ -56,6 +56,8 @@ export default async function ProductDetailPage({
   }
 
   const isStudent = Boolean(currentSession);
+  const currentMemberId = currentSession?.member.id ?? null;
+  const currentGroupId = currentSession?.member.groupId ?? null;
 
   const { productId } = await params;
   const parsedProductId = Number(productId);
@@ -195,6 +197,9 @@ export default async function ProductDetailPage({
     notFound();
   }
 
+  const isOwnProduct =
+    currentGroupId !== null && product.groupId === currentGroupId;
+
   const coverImage =
     product.images.find((image) => image.isCover) ?? product.images[0];
 
@@ -228,11 +233,12 @@ export default async function ProductDetailPage({
           )
         : null;
 
-    const currentRating = currentSession
-      ? feature.ratings.find(
-          (rating) => rating.memberId === currentSession.member.id,
-        )?.rating ?? null
-      : null;
+    const currentRating =
+      currentMemberId !== null
+        ? feature.ratings.find(
+            (rating) => rating.memberId === currentMemberId,
+          )?.rating ?? null
+        : null;
 
     return {
       id: feature.id,
@@ -257,11 +263,12 @@ export default async function ProductDetailPage({
           )
         : null;
 
-    const currentRating = currentSession
-      ? question.ratings.find(
-          (rating) => rating.memberId === currentSession.member.id,
-        )?.rating ?? null
-      : null;
+    const currentRating =
+      currentMemberId !== null
+        ? question.ratings.find(
+            (rating) => rating.memberId === currentMemberId,
+          )?.rating ?? null
+        : null;
 
     return {
       id: question.id,
@@ -360,6 +367,12 @@ export default async function ProductDetailPage({
                       Public read-only view
                     </span>
                   ) : null}
+
+                  {isOwnProduct ? (
+                    <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-800">
+                      Own product
+                    </span>
+                  ) : null}
                 </div>
 
                 <div className="space-y-4">
@@ -444,15 +457,28 @@ export default async function ProductDetailPage({
               </section>
             ) : null}
 
+            {isOwnProduct ? (
+              <section className="rounded-[2.2rem] border border-amber-200 bg-amber-50/90 p-5 text-amber-950 sm:p-7 lg:p-8">
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-amber-700">
+                  Self-voting blocked
+                </p>
+                <h2 className="mt-3 text-3xl font-black tracking-[-0.045em]">
+                  Your group cannot evaluate its own product.
+                </h2>
+              </section>
+            ) : null}
+
             <FeatureRatingList
               features={featureRatings}
               votingOpen={votingOpen && isStudent}
+              isOwnProduct={isOwnProduct}
             />
 
             <ProductQuestionRatingList
               productId={product.id}
               questions={productQuestionRatings}
               votingOpen={votingOpen && isStudent}
+              isOwnProduct={isOwnProduct}
             />
           </div>
 
@@ -460,6 +486,7 @@ export default async function ProductDetailPage({
             <PurchaseInterestPanel
               productId={product.id}
               totalGroups={totalGroups}
+              isOwnProduct={isOwnProduct}
               initialState={{
                 status: "idle",
                 message: "",

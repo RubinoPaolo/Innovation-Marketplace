@@ -13,7 +13,10 @@ export type FeatureRatingState = {
   averageRating: number | null;
   ratingCount: number;
   votingOpen: boolean;
+  isOwnProduct: boolean;
 };
+
+type FeatureRatingIntent = "SAVE" | "WITHDRAW";
 
 function parsePositiveInteger(
   value: FormDataEntryValue | null,
@@ -35,6 +38,16 @@ function parseRating(value: FormDataEntryValue | null): number | null {
   }
 
   return rating;
+}
+
+function parseIntent(value: FormDataEntryValue | null): FeatureRatingIntent {
+  const normalizedValue = String(value ?? "").trim().toUpperCase();
+
+  if (normalizedValue === "WITHDRAW") {
+    return "WITHDRAW";
+  }
+
+  return "SAVE";
 }
 
 async function getFeatureRatingSummary(featureId: number): Promise<{
@@ -73,6 +86,7 @@ export async function rateProductFeature(
 
   const featureId = parsePositiveInteger(formData.get("featureId"));
   const rating = parseRating(formData.get("rating"));
+  const intent = parseIntent(formData.get("intent"));
 
   if (!currentSession || !activeEdition) {
     return {
@@ -83,7 +97,7 @@ export async function rateProductFeature(
     };
   }
 
-  if (!featureId || !rating) {
+  if (!featureId) {
     return {
       ...previousState,
       status: "error",
@@ -105,6 +119,11 @@ export async function rateProductFeature(
       select: {
         id: true,
         productId: true,
+        product: {
+          select: {
+            groupId: true,
+          },
+        },
       },
     }),
     prisma.votingSettings.findUnique({
@@ -127,6 +146,59 @@ export async function rateProductFeature(
   }
 
   const votingOpen = votingSettings?.isOpen ?? false;
+  const isOwnProduct = feature.product.groupId === currentSession.member.groupId;
+
+  if (intent === "WITHDRAW") {
+    if (!votingOpen && !isOwnProduct) {
+      const summary = await getFeatureRatingSummary(feature.id);
+
+      return {
+        ...previousState,
+        ...summary,
+        status: "error",
+        message: "Voting is currently closed.",
+        votingOpen: false,
+        isOwnProduct,
+      };
+    }
+
+    const existingRating = await prisma.featureRating.findUnique({
+      where: {
+        featureId_memberId: {
+          featureId: feature.id,
+          memberId: currentSession.member.id,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingRating) {
+      await prisma.featureRating.delete({
+        where: {
+          id: existingRating.id,
+        },
+      });
+    }
+
+    const summary = await getFeatureRatingSummary(feature.id);
+
+    revalidatePath(`/catalogo/${feature.productId}`);
+
+    return {
+      status: "success",
+      message: existingRating
+        ? "Your feature rating has been withdrawn."
+        : "You had no active feature rating to withdraw.",
+      featureId: feature.id,
+      currentRating: null,
+      averageRating: summary.averageRating,
+      ratingCount: summary.ratingCount,
+      votingOpen,
+      isOwnProduct,
+    };
+  }
 
   if (!votingOpen) {
     const summary = await getFeatureRatingSummary(feature.id);
@@ -137,6 +209,29 @@ export async function rateProductFeature(
       status: "error",
       message: "Voting is currently closed.",
       votingOpen: false,
+      isOwnProduct,
+    };
+  }
+
+  if (isOwnProduct) {
+    const summary = await getFeatureRatingSummary(feature.id);
+
+    return {
+      ...previousState,
+      ...summary,
+      status: "error",
+      message: "Your group cannot rate features of its own product.",
+      votingOpen: true,
+      isOwnProduct,
+    };
+  }
+
+  if (!rating) {
+    return {
+      ...previousState,
+      status: "error",
+      message: "The selected feature rating is not valid.",
+      isOwnProduct,
     };
   }
 
@@ -169,5 +264,6 @@ export async function rateProductFeature(
     averageRating: summary.averageRating,
     ratingCount: summary.ratingCount,
     votingOpen: true,
+    isOwnProduct,
   };
 }

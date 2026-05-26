@@ -130,6 +130,7 @@ export async function togglePurchaseInterest(
       },
       select: {
         id: true,
+        groupId: true,
       },
     }),
     prisma.votingSettings.findUnique({
@@ -152,20 +153,21 @@ export async function togglePurchaseInterest(
   }
 
   const votingOpen = votingSettings?.isOpen ?? false;
-
-  if (!votingOpen) {
-    const counts = await countProductResponses(product.id);
-
-    return {
-      ...previousState,
-      ...counts,
-      status: "error",
-      message: "Voting is currently closed.",
-      votingOpen: false,
-    };
-  }
+  const isOwnProduct = product.groupId === currentSession.member.groupId;
 
   if (intent === "WITHDRAW") {
+    if (!votingOpen && !isOwnProduct) {
+      const counts = await countProductResponses(product.id);
+
+      return {
+        ...previousState,
+        ...counts,
+        status: "error",
+        message: "Voting is currently closed.",
+        votingOpen: false,
+      };
+    }
+
     const existingVote = await prisma.purchaseInterest.findUnique({
       where: {
         productId_groupId: {
@@ -199,6 +201,30 @@ export async function togglePurchaseInterest(
       reason: "",
       yesCount: counts.yesCount,
       noCount: counts.noCount,
+      votingOpen,
+    };
+  }
+
+  if (!votingOpen) {
+    const counts = await countProductResponses(product.id);
+
+    return {
+      ...previousState,
+      ...counts,
+      status: "error",
+      message: "Voting is currently closed.",
+      votingOpen: false,
+    };
+  }
+
+  if (isOwnProduct) {
+    const counts = await countProductResponses(product.id);
+
+    return {
+      ...previousState,
+      ...counts,
+      status: "error",
+      message: "Your group cannot vote for its own product.",
       votingOpen: true,
     };
   }
