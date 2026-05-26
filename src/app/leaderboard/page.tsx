@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { prisma } from "@/lib/prisma";
-import { getCurrentStudentSession } from "@/lib/student-session";
 import { getActiveCourseEdition } from "@/lib/active-edition";
 
 type RankedProduct = {
@@ -75,15 +73,37 @@ function getRankLabel(rank: number): string {
 }
 
 export default async function LeaderboardPage() {
-  const [currentSession, activeEdition] = await Promise.all([
-    getCurrentStudentSession(),
-    getActiveCourseEdition(),
-  ]);
+  const activeEdition = await getActiveCourseEdition();
 
-  if (!currentSession || !activeEdition) {
-    redirect("/");
+  if (!activeEdition) {
+    return (
+      <div className="premium-page min-h-screen text-slate-950">
+        <SiteHeader />
+
+        <main className="premium-shell py-8 sm:py-10 lg:py-12">
+          <section className="premium-surface-strong rounded-[2.2rem] p-6 text-center sm:p-10 lg:p-12">
+            <div className="mx-auto max-w-2xl space-y-5">
+              <p className="premium-kicker justify-center">
+                Leaderboard unavailable
+              </p>
+              <h1 className="text-3xl font-black tracking-[-0.045em] text-slate-950 sm:text-4xl">
+                No active course edition is configured.
+              </h1>
+              <p className="text-base font-medium leading-8 text-slate-600">
+                The public leaderboard becomes available when an active edition is configured.
+              </p>
+              <Link
+                href="/"
+                className="premium-button-primary inline-flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
+              >
+                Back to homepage
+              </Link>
+            </div>
+          </section>
+        </main>
+      </div>
+    );
   }
-
   const [products, totalGroups, totalYesVotes] = await Promise.all([
     prisma.product.findMany({
       where: {

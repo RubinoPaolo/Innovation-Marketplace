@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { prisma } from "@/lib/prisma";
-import { getCurrentStudentSession } from "@/lib/student-session";
 import { getActiveCourseEdition } from "@/lib/active-edition";
 
 function formatPrice(priceCents: number): string {
@@ -13,64 +11,59 @@ function formatPrice(priceCents: number): string {
 }
 
 export default async function CatalogPage() {
-  const [currentSession, activeEdition] = await Promise.all([
-    getCurrentStudentSession(),
-    getActiveCourseEdition(),
-  ]);
+  const activeEdition = await getActiveCourseEdition();
 
-  if (!currentSession || !activeEdition) {
-    redirect("/");
-  }
-
-  const products = await prisma.product.findMany({
-    where: {
-      status: "PUBLISHED",
-      group: {
-        editionId: activeEdition.id,
-      },
-    },
-    include: {
-      group: {
-        select: {
-          name: true,
+  const products = activeEdition
+    ? await prisma.product.findMany({
+        where: {
+          status: "PUBLISHED",
+          group: {
+            editionId: activeEdition.id,
+          },
         },
-      },
-      category: {
-        select: {
-          name: true,
-        },
-      },
-      badges: {
         include: {
-          badge: {
+          group: {
             select: {
               name: true,
             },
           },
-        },
-      },
-      images: {
-        where: {
-          isCover: true,
+          category: {
+            select: {
+              name: true,
+            },
+          },
+          badges: {
+            include: {
+              badge: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+          images: {
+            where: {
+              isCover: true,
+            },
+            orderBy: {
+              sortOrder: "asc",
+            },
+            take: 1,
+          },
+          interests: {
+            where: {
+              decision: "YES",
+            },
+            select: {
+              id: true,
+            },
+          },
         },
         orderBy: {
-          sortOrder: "asc",
+          updatedAt: "desc",
         },
-        take: 1,
-      },
-      interests: {
-        where: {
-          decision: "YES",
-        },
-        select: {
-          id: true,
-        },
-      },
-    },
-    orderBy: {
-      updatedAt: "desc",
-    },
-  });
+      })
+    : [];
 
   return (
     <div className="premium-page min-h-screen text-slate-950">
@@ -84,7 +77,10 @@ export default async function CatalogPage() {
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="premium-kicker">Shared catalog</span>
                   <span className="premium-chip inline-flex items-center rounded-full px-4 py-2 text-sm font-bold text-slate-700">
-                    {activeEdition.name}
+                    {activeEdition?.name ?? "No active course edition"}
+                  </span>
+                  <span className="premium-chip inline-flex items-center rounded-full px-4 py-2 text-sm font-bold text-slate-700">
+                    Public read-only view
                   </span>
                 </div>
 
@@ -93,7 +89,7 @@ export default async function CatalogPage() {
                 </h1>
 
                 <p className="max-w-3xl text-base font-medium leading-8 text-slate-600 sm:text-lg">
-                  Browse the products created by the groups, compare their positioning and discover which ideas are receiving the strongest positive demand signal.
+                  Browse the products created by the groups, compare their positioning and discover which ideas are receiving the strongest positive group-vote signal.
                 </p>
               </div>
 
@@ -108,10 +104,32 @@ export default async function CatalogPage() {
             </div>
           </div>
 
-          {products.length === 0 ? (
+          {!activeEdition ? (
             <section className="premium-surface-strong rounded-[2.2rem] p-6 text-center sm:p-10 lg:p-12">
               <div className="mx-auto max-w-2xl space-y-5">
-                <p className="premium-kicker justify-center">Catalog in progress</p>
+                <p className="premium-kicker justify-center">
+                  Catalog unavailable
+                </p>
+                <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950 sm:text-4xl">
+                  No active course edition is configured.
+                </h2>
+                <p className="text-base font-medium leading-8 text-slate-600">
+                  The public catalog becomes available when an active edition is configured.
+                </p>
+                <Link
+                  href="/"
+                  className="premium-button-primary inline-flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
+                >
+                  Back to homepage
+                </Link>
+              </div>
+            </section>
+          ) : products.length === 0 ? (
+            <section className="premium-surface-strong rounded-[2.2rem] p-6 text-center sm:p-10 lg:p-12">
+              <div className="mx-auto max-w-2xl space-y-5">
+                <p className="premium-kicker justify-center">
+                  Catalog in progress
+                </p>
                 <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950 sm:text-4xl">
                   No products have been published yet.
                 </h2>

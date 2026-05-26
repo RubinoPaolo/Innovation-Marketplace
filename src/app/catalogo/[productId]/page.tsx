@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { FeatureRatingList } from "@/components/feature-rating-list";
 import { ProductQuestionRatingList } from "@/components/product-question-rating-list";
 import { PurchaseInterestPanel } from "@/components/purchase-interest-panel";
@@ -51,9 +51,11 @@ export default async function ProductDetailPage({
     getActiveCourseEdition(),
   ]);
 
-  if (!currentSession || !activeEdition) {
-    redirect("/");
+  if (!activeEdition) {
+    notFound();
   }
+
+  const isStudent = Boolean(currentSession);
 
   const { productId } = await params;
   const parsedProductId = Number(productId);
@@ -134,12 +136,14 @@ export default async function ProductDetailPage({
         },
       },
     }),
+
     prisma.group.count({
       where: {
         editionId: activeEdition.id,
         isActive: true,
       },
     }),
+
     prisma.votingSettings.findUnique({
       where: {
         editionId: activeEdition.id,
@@ -148,18 +152,22 @@ export default async function ProductDetailPage({
         isOpen: true,
       },
     }),
-    prisma.purchaseInterest.findUnique({
-      where: {
-        productId_groupId: {
-          productId: parsedProductId,
-          groupId: currentSession.member.groupId,
-        },
-      },
-      select: {
-        decision: true,
-        reason: true,
-      },
-    }),
+
+    currentSession
+      ? prisma.purchaseInterest.findUnique({
+          where: {
+            productId_groupId: {
+              productId: parsedProductId,
+              groupId: currentSession.member.groupId,
+            },
+          },
+          select: {
+            decision: true,
+            reason: true,
+          },
+        })
+      : Promise.resolve(null),
+
     prisma.evaluationQuestion.findMany({
       where: {
         isActive: true,
@@ -220,10 +228,11 @@ export default async function ProductDetailPage({
           )
         : null;
 
-    const currentRating =
-      feature.ratings.find(
-        (rating) => rating.memberId === currentSession.member.id,
-      )?.rating ?? null;
+    const currentRating = currentSession
+      ? feature.ratings.find(
+          (rating) => rating.memberId === currentSession.member.id,
+        )?.rating ?? null
+      : null;
 
     return {
       id: feature.id,
@@ -248,10 +257,11 @@ export default async function ProductDetailPage({
           )
         : null;
 
-    const currentRating =
-      question.ratings.find(
-        (rating) => rating.memberId === currentSession.member.id,
-      )?.rating ?? null;
+    const currentRating = currentSession
+      ? question.ratings.find(
+          (rating) => rating.memberId === currentSession.member.id,
+        )?.rating ?? null
+      : null;
 
     return {
       id: question.id,
@@ -344,6 +354,12 @@ export default async function ProductDetailPage({
                       {productBadge.badge.name}
                     </span>
                   ))}
+
+                  {!isStudent ? (
+                    <span className="premium-chip rounded-full px-3 py-1 text-xs font-black text-slate-700">
+                      Public read-only view
+                    </span>
+                  ) : null}
                 </div>
 
                 <div className="space-y-4">
@@ -413,31 +429,82 @@ export default async function ProductDetailPage({
               </section>
             ) : null}
 
+            {!isStudent ? (
+              <section className="premium-surface-strong rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
+                <p className="premium-kicker">Public visitor mode</p>
+                <h2 className="mt-3 text-3xl font-black tracking-[-0.045em] text-slate-950">
+                  You are viewing this product in read-only mode.
+                </h2>
+                <p className="mt-3 max-w-3xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
+                  External visitors can inspect the catalog, product details,
+                  images, feedback summaries and leaderboard. Voting, star
+                  ratings and Group area tools are reserved for registered
+                  students and groups.
+                </p>
+              </section>
+            ) : null}
+
             <FeatureRatingList
               features={featureRatings}
-              votingOpen={votingOpen}
+              votingOpen={votingOpen && isStudent}
             />
 
             <ProductQuestionRatingList
               productId={product.id}
               questions={productQuestionRatings}
-              votingOpen={votingOpen}
+              votingOpen={votingOpen && isStudent}
             />
           </div>
 
-          <PurchaseInterestPanel
-            productId={product.id}
-            totalGroups={totalGroups}
-            initialState={{
-              status: "idle",
-              message: "",
-              decision: existingDecision,
-              reason: existingInterest?.reason ?? "",
-              yesCount,
-              noCount,
-              votingOpen,
-            }}
-          />
+          {isStudent ? (
+            <PurchaseInterestPanel
+              productId={product.id}
+              totalGroups={totalGroups}
+              initialState={{
+                status: "idle",
+                message: "",
+                decision: existingDecision,
+                reason: existingInterest?.reason ?? "",
+                yesCount,
+                noCount,
+                votingOpen,
+              }}
+            />
+          ) : (
+            <section className="premium-surface-strong rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
+              <div className="space-y-3">
+                <p className="premium-kicker">Public read-only access</p>
+                <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950">
+                  Voting is reserved for registered groups.
+                </h2>
+                <p className="max-w-3xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
+                  External visitors can browse the catalog, inspect product
+                  pages and view the current voting status, but they cannot
+                  submit Yes/No votes, star ratings or access the Group area.
+                </p>
+              </div>
+
+              <div className="mt-6 rounded-[1.7rem] border border-slate-200 bg-white/78 p-5">
+                <p className="text-sm font-black text-slate-500">
+                  Current voting status
+                </p>
+                <p
+                  className={`mt-2 text-3xl font-black tracking-tight ${
+                    votingOpen ? "text-emerald-700" : "text-amber-700"
+                  }`}
+                >
+                  {votingOpen ? "Open" : "Closed"}
+                </p>
+              </div>
+
+              <Link
+                href="/"
+                className="premium-button-secondary mt-5 inline-flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
+              >
+                Student sign-in
+              </Link>
+            </section>
+          )}
         </section>
 
         <section className="premium-surface-strong mt-8 rounded-[2.2rem] p-5 sm:p-7 lg:p-8">

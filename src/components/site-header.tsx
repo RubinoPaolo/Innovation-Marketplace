@@ -32,49 +32,50 @@ export async function SiteHeader() {
           </Link>
         </div>
 
-        {currentSession ? (
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-end">
-            <nav
-              aria-label="Main navigation"
-              className="flex max-w-full items-center gap-2 overflow-x-auto rounded-full border border-slate-200/80 bg-white/72 p-1.5 shadow-sm shadow-slate-900/5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-end">
+          <nav
+            aria-label="Main navigation"
+            className="flex max-w-full items-center gap-2 overflow-x-auto rounded-full border border-slate-200/80 bg-white/72 p-1.5 shadow-sm shadow-slate-900/5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            <Link
+              href="/"
+              className="shrink-0 rounded-full px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-950 hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
             >
-              <Link
-                href="/"
-                className="shrink-0 rounded-full px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-950 hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
-              >
-                Home
-              </Link>
+              Home
+            </Link>
 
-              <Link
-                href="/catalogo"
-                className="shrink-0 rounded-full px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-950 hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
-              >
-                Catalog
-              </Link>
+            <Link
+              href="/catalogo"
+              className="shrink-0 rounded-full px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-950 hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
+            >
+              Catalog
+            </Link>
 
-              <Link
-                href="/leaderboard"
-                className="shrink-0 rounded-full px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-950 hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
-              >
-                Leaderboard
-              </Link>
+            <Link
+              href="/leaderboard"
+              className="shrink-0 rounded-full px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-950 hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
+            >
+              Leaderboard
+            </Link>
 
+            {currentSession ? (
               <Link
                 href="/area-gruppo"
                 className="shrink-0 rounded-full px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-950 hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
               >
                 Group area
               </Link>
-            </nav>
+            ) : null}
+          </nav>
 
+          {currentSession ? (
             <div className="premium-surface flex flex-col gap-3 rounded-[1.75rem] px-4 py-3 sm:flex-row sm:items-center sm:justify-between xl:min-w-[20rem]">
               <div className="min-w-0">
                 <p className="truncate text-sm font-black tracking-tight text-slate-950">
                   {currentSession.member.group.name}
                 </p>
                 <p className="mt-0.5 text-xs font-semibold text-slate-500">
-                  Student ID{" "}
-                  {maskStudentId(currentSession.member.studentNumber)}
+                  Student ID {maskStudentId(currentSession.member.studentNumber)}
                 </p>
               </div>
 
@@ -87,12 +88,12 @@ export async function SiteHeader() {
                 </button>
               </form>
             </div>
-          </div>
-        ) : (
-          <div className="premium-surface flex items-center rounded-full px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm shadow-slate-900/5">
-            Identify yourself from the homepage to access the platform features.
-          </div>
-        )}
+          ) : (
+            <div className="premium-surface flex items-center rounded-full px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm shadow-slate-900/5">
+              Public read-only access. Sign in to vote or manage a group.
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
