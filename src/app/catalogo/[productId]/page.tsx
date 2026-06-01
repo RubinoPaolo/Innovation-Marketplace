@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FeatureRatingList } from "@/components/feature-rating-list";
+import { ProductImageGallery } from "@/components/product-image-gallery";
 import { ProductQuestionRatingList } from "@/components/product-question-rating-list";
 import { PurchaseInterestPanel } from "@/components/purchase-interest-panel";
 import { SiteHeader } from "@/components/site-header";
@@ -200,9 +201,6 @@ export default async function ProductDetailPage({
   const isOwnProduct =
     currentGroupId !== null && product.groupId === currentGroupId;
 
-  const coverImage =
-    product.images.find((image) => image.isCover) ?? product.images[0];
-
   const yesCount = product.interests.filter(
     (interest) => interest.decision === "YES",
   ).length;
@@ -294,54 +292,10 @@ export default async function ProductDetailPage({
         </div>
 
         <section className="grid gap-8 xl:grid-cols-[minmax(0,1.02fr)_minmax(24rem,0.98fr)] xl:items-start">
-          <div className="space-y-6">
-            <div className="premium-surface-strong overflow-hidden rounded-[2.2rem]">
-              <div className="aspect-[16/10] bg-slate-200/80">
-                {coverImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={coverImage.imageUrl}
-                    alt={coverImage.altText ?? product.title}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center px-6 text-center text-sm font-bold text-slate-500">
-                    Product image not available yet
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {product.images.length > 1 ? (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {product.images.map((image) => (
-                  <article
-                    key={image.id}
-                    className="premium-surface overflow-hidden rounded-[1.8rem]"
-                  >
-                    <div className="aspect-[16/10] bg-slate-200/80">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={image.imageUrl}
-                        alt={
-                          image.altText ?? `${product.title} product image`
-                        }
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-
-                    {image.isCover ? (
-                      <div className="p-4">
-                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800">
-                          Cover image
-                        </span>
-                      </div>
-                    ) : null}
-                  </article>
-                ))}
-              </div>
-            ) : null}
-          </div>
+          <ProductImageGallery
+            images={product.images}
+            productTitle={product.title}
+          />
 
           <div className="space-y-6">
             <section className="premium-hero rounded-[2.4rem] px-5 py-6 sm:px-7 sm:py-8 lg:px-8 lg:py-9">
