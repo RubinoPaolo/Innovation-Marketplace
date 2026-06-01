@@ -130,6 +130,7 @@ export default async function AdminPage() {
         isOpen: true,
       },
     }),
+
     prisma.product.count({
       where: {
         status: "PUBLISHED",
@@ -139,6 +140,7 @@ export default async function AdminPage() {
         },
       },
     }),
+
     prisma.groupMember.count({
       where: {
         editionId: activeEdition.id,
@@ -148,6 +150,7 @@ export default async function AdminPage() {
         },
       },
     }),
+
     prisma.purchaseInterest.count({
       where: {
         product: {
@@ -158,18 +161,21 @@ export default async function AdminPage() {
         },
       },
     }),
+
     prisma.group.count({
       where: {
         editionId: activeEdition.id,
         isActive: true,
       },
     }),
+
     prisma.groupRequest.count({
       where: {
         editionId: activeEdition.id,
         status: "PENDING",
       },
     }),
+
     prisma.homeNotice.findMany({
       where: {
         editionId: activeEdition.id,
@@ -203,6 +209,7 @@ export default async function AdminPage() {
                 >
                   Back to homepage
                 </Link>
+
                 <span className="premium-chip inline-flex items-center rounded-full px-4 py-2 text-sm font-bold text-slate-700">
                   {activeEdition.name}
                 </span>
@@ -321,7 +328,8 @@ export default async function AdminPage() {
               </h2>
               <p className="max-w-3xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
                 Export the collected data of the active edition. Choose CSV for
-                a lightweight dataset or XLSX for a polished, formatted workbook.
+                a lightweight dataset or XLSX for a polished, formatted
+                workbook.
               </p>
             </div>
 
@@ -343,7 +351,36 @@ export default async function AdminPage() {
           </div>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-2">
+        <section className="grid gap-6 lg:grid-cols-3">
+          <article className="premium-surface-strong rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
+            <div className="space-y-3">
+              <p className="premium-kicker">Voting monitor</p>
+              <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950">
+                Check voting progress.
+              </h2>
+              <p className="text-sm font-medium leading-7 text-slate-600 sm:text-base">
+                Inspect group Yes/No votes, individual star-rating activity and
+                missing members before or during the voting session.
+              </p>
+            </div>
+
+            <div className="premium-muted mt-6 rounded-[1.7rem] p-5">
+              <p className="text-sm font-bold text-slate-500">
+                Active groups monitored
+              </p>
+              <p className="mt-2 text-4xl font-black tracking-tight text-slate-950">
+                {activeGroups}
+              </p>
+            </div>
+
+            <Link
+              href="/admin/voting-monitor"
+              className="premium-button-primary mt-6 inline-flex h-12 w-full items-center justify-center rounded-2xl px-6 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
+            >
+              Open voting monitor
+            </Link>
+          </article>
+
           <article className="premium-surface-strong rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
             <div className="space-y-3">
               <p className="premium-kicker">Group administration</p>
@@ -351,9 +388,9 @@ export default async function AdminPage() {
                 Manage groups and student IDs.
               </h2>
               <p className="text-sm font-medium leading-7 text-slate-600 sm:text-base">
-                Rename groups, suspend or delete them, add or remove student
-                IDs and keep the active edition roster up to date without
-                touching the database manually.
+                Rename groups, suspend or delete them, add or remove student IDs
+                and keep the active edition roster up to date without touching
+                the database manually.
               </p>
             </div>
 
@@ -368,7 +405,7 @@ export default async function AdminPage() {
 
             <Link
               href="/admin/groups"
-              className="premium-button-primary mt-6 inline-flex h-12 w-full items-center justify-center rounded-2xl px-6 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
+              className="premium-button-secondary mt-6 inline-flex h-12 w-full items-center justify-center rounded-2xl px-6 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
             >
               Open group administration
             </Link>
