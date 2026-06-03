@@ -8,6 +8,7 @@ import {
   type ProductFormValues,
 } from "@/app/actions/save-group-product";
 import { GroupProductWithdrawButton } from "@/components/group-product-withdraw-button";
+import { priceCentsToInputValue } from "@/lib/price";
 
 type CategoryOption = {
   id: number;
@@ -23,7 +24,7 @@ type ExistingProduct = {
   title: string;
   shortDescription: string | null;
   description: string | null;
-  priceCents: number;
+  priceCents: string;
   categoryId: number | null;
   features: Array<{
     text: string;
@@ -39,14 +40,6 @@ type GroupProductFormProps = {
 };
 
 const productDraftFormId = "group-product-draft-form";
-
-function priceCentsToInputValue(priceCents: number | undefined): string {
-  if (!priceCents) {
-    return "";
-  }
-
-  return (priceCents / 100).toFixed(2).replace(".", ",");
-}
 
 function buildInitialValues(product: ExistingProduct): ProductFormValues {
   return {
@@ -159,7 +152,10 @@ export function GroupProductForm({
 
           <div className="mt-6 grid gap-5">
             <div className="space-y-2.5">
-              <label htmlFor="title" className="block text-sm font-black text-slate-900">
+              <label
+                htmlFor="title"
+                className="block text-sm font-black text-slate-900"
+              >
                 Product name *
               </label>
               <input
@@ -168,7 +164,9 @@ export function GroupProductForm({
                 type="text"
                 required
                 value={values.title}
-                onChange={(event) => updateTextField("title", event.target.value)}
+                onChange={(event) =>
+                  updateTextField("title", event.target.value)
+                }
                 placeholder="Example: SmartBottle Campus"
                 className="h-13 w-full rounded-2xl border border-slate-300 bg-white px-4 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
               />
@@ -176,7 +174,10 @@ export function GroupProductForm({
 
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px]">
               <div className="space-y-2.5">
-                <label htmlFor="categoryId" className="block text-sm font-black text-slate-900">
+                <label
+                  htmlFor="categoryId"
+                  className="block text-sm font-black text-slate-900"
+                >
                   Category
                 </label>
                 <select
@@ -198,7 +199,10 @@ export function GroupProductForm({
               </div>
 
               <div className="space-y-2.5">
-                <label htmlFor="priceEuro" className="block text-sm font-black text-slate-900">
+                <label
+                  htmlFor="priceEuro"
+                  className="block text-sm font-black text-slate-900"
+                >
                   Price *
                 </label>
                 <div className="relative">
@@ -219,6 +223,10 @@ export function GroupProductForm({
                     className="h-13 w-full rounded-2xl border border-slate-300 bg-white pl-10 pr-4 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
                   />
                 </div>
+                <p className="text-xs font-semibold leading-5 text-slate-500">
+                  Enter numbers only, without the € symbol and without
+                  thousands separators.
+                </p>
               </div>
             </div>
           </div>
@@ -253,7 +261,10 @@ export function GroupProductForm({
             </div>
 
             <div className="space-y-2.5">
-              <label htmlFor="description" className="block text-sm font-black text-slate-900">
+              <label
+                htmlFor="description"
+                className="block text-sm font-black text-slate-900"
+              >
                 Full description
               </label>
               <textarea
@@ -310,7 +321,8 @@ export function GroupProductForm({
               Product badges.
             </h2>
             <p className="max-w-3xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
-              Select the badges that best help students understand the product positioning.
+              Select the badges that best help students understand the product
+              positioning.
             </p>
           </div>
 
@@ -360,7 +372,8 @@ export function GroupProductForm({
                 : "text-slate-500"
           }`}
         >
-          {state.message || "Enter the required fields and save your product draft."}
+          {state.message ||
+            "Enter the required fields and save your product draft."}
         </div>
 
         <div className="mt-5 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">

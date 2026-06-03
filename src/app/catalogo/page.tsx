@@ -2,13 +2,7 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { prisma } from "@/lib/prisma";
 import { getActiveCourseEdition } from "@/lib/active-edition";
-
-function formatPrice(priceCents: number): string {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "EUR",
-  }).format(priceCents / 100);
-}
+import { formatPriceFromCents } from "@/lib/price";
 
 export default async function CatalogPage() {
   const activeEdition = await getActiveCourseEdition();
@@ -89,7 +83,9 @@ export default async function CatalogPage() {
                 </h1>
 
                 <p className="max-w-3xl text-base font-medium leading-8 text-slate-600 sm:text-lg">
-                  Browse the products created by the groups, compare their positioning and discover which ideas are receiving the strongest positive group-vote signal.
+                  Browse the products created by the groups, compare their
+                  positioning and discover which ideas are receiving the
+                  strongest positive group-vote signal.
                 </p>
               </div>
 
@@ -114,7 +110,8 @@ export default async function CatalogPage() {
                   No active course edition is configured.
                 </h2>
                 <p className="text-base font-medium leading-8 text-slate-600">
-                  The public catalog becomes available when an active edition is configured.
+                  The public catalog becomes available when an active edition is
+                  configured.
                 </p>
                 <Link
                   href="/"
@@ -134,7 +131,8 @@ export default async function CatalogPage() {
                   No products have been published yet.
                 </h2>
                 <p className="text-base font-medium leading-8 text-slate-600">
-                  Each team will first complete its product draft, upload images and publish the final proposal from the group area.
+                  Each team will first complete its product draft, upload images
+                  and publish the final proposal from the group area.
                 </p>
                 <Link
                   href="/"
@@ -229,7 +227,7 @@ export default async function CatalogPage() {
                               Price
                             </p>
                             <p className="mt-2 text-lg font-black tracking-tight text-slate-950">
-                              {formatPrice(product.priceCents)}
+                              {formatPriceFromCents(product.priceCents)}
                             </p>
                           </div>
 

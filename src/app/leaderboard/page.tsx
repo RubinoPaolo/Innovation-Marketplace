@@ -2,11 +2,14 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { prisma } from "@/lib/prisma";
 import { getActiveCourseEdition } from "@/lib/active-edition";
+import { formatPriceFromCents } from "@/lib/price";
 
 type RankedProduct = {
   id: number;
   title: string;
-  priceCents: number;
+  priceCents: {
+    toString(): string;
+  };
   group: {
     name: string;
   };
@@ -21,13 +24,6 @@ type RankedProduct = {
     id: number;
   }>;
 };
-
-function formatPrice(priceCents: number): string {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "EUR",
-  }).format(priceCents / 100);
-}
 
 function formatPercentage(yesCount: number, totalGroups: number): string {
   if (totalGroups <= 0) {
@@ -90,7 +86,8 @@ export default async function LeaderboardPage() {
                 No active course edition is configured.
               </h1>
               <p className="text-base font-medium leading-8 text-slate-600">
-                The public leaderboard becomes available when an active edition is configured.
+                The public leaderboard becomes available when an active edition
+                is configured.
               </p>
               <Link
                 href="/"
@@ -104,12 +101,14 @@ export default async function LeaderboardPage() {
       </div>
     );
   }
+
   const [products, totalGroups, totalYesVotes] = await Promise.all([
     prisma.product.findMany({
       where: {
         status: "PUBLISHED",
         group: {
           editionId: activeEdition.id,
+          isActive: true,
         },
       },
       select: {
@@ -149,18 +148,22 @@ export default async function LeaderboardPage() {
         },
       },
     }),
+
     prisma.group.count({
       where: {
         editionId: activeEdition.id,
         isActive: true,
       },
     }),
+
     prisma.purchaseInterest.count({
       where: {
         decision: "YES",
         product: {
+          status: "PUBLISHED",
           group: {
             editionId: activeEdition.id,
+            isActive: true,
           },
         },
       },
@@ -326,7 +329,7 @@ export default async function LeaderboardPage() {
                                 Price
                               </p>
                               <p className="mt-2 text-base font-black tracking-tight text-slate-950">
-                                {formatPrice(product.priceCents)}
+                                {formatPriceFromCents(product.priceCents)}
                               </p>
                             </div>
 
@@ -438,7 +441,7 @@ export default async function LeaderboardPage() {
                               Price
                             </p>
                             <p className="mt-2 text-lg font-black tracking-tight text-slate-950">
-                              {formatPrice(product.priceCents)}
+                              {formatPriceFromCents(product.priceCents)}
                             </p>
                           </div>
                         </div>

@@ -1,6 +1,7 @@
 import { getCurrentAdminSession } from "@/lib/admin-session";
 import { getActiveCourseEdition } from "@/lib/active-edition";
 import { buildVotingResultsExportData } from "@/lib/voting-results-export";
+import { formatPriceFromCents } from "@/lib/price";
 
 export const dynamic = "force-dynamic";
 
@@ -17,10 +18,6 @@ function escapeCsvValue(value: string | number | null | undefined): string {
   }
 
   return normalizedValue;
-}
-
-function formatPrice(priceCents: number): string {
-  return (priceCents / 100).toFixed(2);
 }
 
 function formatPercentage(rate: number): string {
@@ -82,7 +79,8 @@ export async function GET() {
       "Product",
       "Product group",
       "Category",
-      "Price EUR",
+      "Price",
+      "Price cents",
       "Publication status",
       "Yes votes",
       "No votes",
@@ -112,7 +110,8 @@ export async function GET() {
       row.product,
       row.group,
       row.category,
-      formatPrice(row.priceCents),
+      formatPriceFromCents(row.priceCents),
+      row.priceCents,
       row.publicationStatus,
       row.yesVotes,
       row.noVotes,
@@ -142,6 +141,7 @@ export async function GET() {
       row.product,
       row.group,
       row.category,
+      "",
       "",
       "",
       "",
@@ -181,6 +181,7 @@ export async function GET() {
       "",
       "",
       "",
+      "",
       row.studentNumber,
       "",
       "",
@@ -202,6 +203,7 @@ export async function GET() {
       row.product,
       row.group,
       row.category,
+      "",
       "",
       "",
       "",

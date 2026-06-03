@@ -8,13 +8,7 @@ import { SiteHeader } from "@/components/site-header";
 import { prisma } from "@/lib/prisma";
 import { getCurrentStudentSession } from "@/lib/student-session";
 import { getActiveCourseEdition } from "@/lib/active-edition";
-
-function formatPrice(priceCents: number): string {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "EUR",
-  }).format(priceCents / 100);
-}
+import { formatPriceFromCents } from "@/lib/price";
 
 function formatPercentage(yesCount: number, totalGroups: number): string {
   if (totalGroups <= 0) {
@@ -339,7 +333,7 @@ export default async function ProductDetailPage({
                   </h1>
 
                   <p className="text-3xl font-black tracking-tight text-slate-950">
-                    {formatPrice(product.priceCents)}
+                    {formatPriceFromCents(product.priceCents)}
                   </p>
                 </div>
 
@@ -419,6 +413,10 @@ export default async function ProductDetailPage({
                 <h2 className="mt-3 text-3xl font-black tracking-[-0.045em]">
                   Your group cannot evaluate its own product.
                 </h2>
+                <p className="mt-3 max-w-3xl text-sm font-bold leading-7">
+                  You can still withdraw any previous test ratings submitted
+                  before this rule was introduced.
+                </p>
               </section>
             ) : null}
 

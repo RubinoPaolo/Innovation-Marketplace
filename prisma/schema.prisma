@@ -92,7 +92,7 @@ model Product {
   title                  String
   shortDescription       String?
   description            String?
-  priceCents             Int
+  priceCents             Decimal                 @db.Decimal(65, 0)
   status                 String                  @default("DRAFT")
   group                  Group                   @relation(fields: [groupId], references: [id], onDelete: Cascade)
   category               Category?               @relation(fields: [categoryId], references: [id], onDelete: SetNull)

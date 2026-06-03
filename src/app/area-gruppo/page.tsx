@@ -190,7 +190,7 @@ export default async function GroupAreaPage() {
         title: product.title,
         shortDescription: product.shortDescription,
         description: product.description,
-        priceCents: product.priceCents,
+        priceCents: product.priceCents.toString(),
         categoryId: product.categoryId,
         features: product.features,
         badgeIds: product.badges.map((productBadge) => productBadge.badgeId),
@@ -238,7 +238,9 @@ export default async function GroupAreaPage() {
                 </h1>
 
                 <p className="max-w-3xl text-base font-medium leading-8 text-slate-600 sm:text-lg">
-                  Manage your innovation proposal, prepare it for publication and submit formal requests when your group data needs to change.
+                  Manage your innovation proposal, prepare it for publication
+                  and submit formal requests when your group data needs to
+                  change.
                 </p>
               </div>
 
@@ -259,7 +261,9 @@ export default async function GroupAreaPage() {
                   Build the product profile.
                 </h2>
                 <p className="max-w-3xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
-                  Save the core product information here. Images and final publishing are managed from the media page after the draft exists.
+                  Save the core product information here. Images and final
+                  publishing are managed from the media page after the draft
+                  exists.
                 </p>
               </div>
 
@@ -363,7 +367,8 @@ export default async function GroupAreaPage() {
                 </div>
               ) : (
                 <div className="mt-6 rounded-[1.7rem] border border-emerald-200 bg-emerald-50/90 p-5 text-sm font-semibold leading-7 text-emerald-950">
-                  No pending group update request is currently waiting for admin review.
+                  No pending group update request is currently waiting for admin
+                  review.
                 </div>
               )}
 
@@ -383,7 +388,8 @@ export default async function GroupAreaPage() {
                   </div>
 
                   <p className="mt-3 font-semibold text-slate-600">
-                    Reviewed {formatDate(latestReviewedGroupUpdateRequest.reviewedAt)}.
+                    Reviewed{" "}
+                    {formatDate(latestReviewedGroupUpdateRequest.reviewedAt)}.
                   </p>
 
                   {latestReviewedGroupUpdateRequest.requestedGroupName ? (

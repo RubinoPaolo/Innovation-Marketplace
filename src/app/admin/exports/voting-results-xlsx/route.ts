@@ -2,6 +2,7 @@ import ExcelJS from "exceljs";
 import { getCurrentAdminSession } from "@/lib/admin-session";
 import { getActiveCourseEdition } from "@/lib/active-edition";
 import { buildVotingResultsExportData } from "@/lib/voting-results-export";
+import { formatPriceFromCents } from "@/lib/price";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -243,7 +244,7 @@ export async function GET() {
     productSummarySheet,
     "Product Summary",
     `Edition: ${exportData.edition.name}`,
-    "M",
+    "N",
   );
 
   if (exportData.productSummaryRows.length > 0) {
@@ -262,7 +263,8 @@ export async function GET() {
         { name: "Product", filterButton: true },
         { name: "Product group", filterButton: true },
         { name: "Category", filterButton: true },
-        { name: "Price EUR", filterButton: true },
+        { name: "Price", filterButton: true },
+        { name: "Price cents", filterButton: true },
         { name: "Publication status", filterButton: true },
         { name: "Yes votes", filterButton: true },
         { name: "No votes", filterButton: true },
@@ -277,7 +279,8 @@ export async function GET() {
         row.product,
         row.group,
         row.category,
-        row.priceCents / 100,
+        formatPriceFromCents(row.priceCents),
+        row.priceCents,
         row.publicationStatus,
         row.yesVotes,
         row.noVotes,
@@ -294,9 +297,8 @@ export async function GET() {
       index += 1
     ) {
       const excelRowNumber = 5 + index;
-      productSummarySheet.getCell(`F${excelRowNumber}`).numFmt =
-        '"€"#,##0.00';
-      productSummarySheet.getCell(`K${excelRowNumber}`).numFmt = "0.00%";
+      productSummarySheet.getCell(`G${excelRowNumber}`).numFmt = "@";
+      productSummarySheet.getCell(`L${excelRowNumber}`).numFmt = "0.00%";
     }
   } else {
     productSummarySheet.getCell("A4").value =
@@ -304,7 +306,7 @@ export async function GET() {
   }
 
   applyHeaderWidths(productSummarySheet, [
-    10, 12, 36, 28, 22, 16, 20, 14, 14, 20, 20, 18, 20,
+    10, 12, 36, 28, 22, 22, 24, 20, 14, 14, 20, 20, 18, 20,
   ]);
 
   const feedbackSheet = workbook.addWorksheet("Product Feedback", {

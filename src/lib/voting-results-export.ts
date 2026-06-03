@@ -11,7 +11,7 @@ export type ProductSummaryExportRow = {
   product: string;
   group: string;
   category: string;
-  priceCents: number;
+  priceCents: string;
   publicationStatus: string;
   yesVotes: number;
   noVotes: number;
@@ -309,9 +309,7 @@ export async function buildVotingResultsExportData(
 
   for (const feedback of feedbackRowsRaw) {
     const targetMap =
-      feedback.decision === "NO"
-        ? noVotesByProductId
-        : yesVotesByProductId;
+      feedback.decision === "NO" ? noVotesByProductId : yesVotesByProductId;
 
     targetMap.set(
       feedback.productId,
@@ -347,7 +345,7 @@ export async function buildVotingResultsExportData(
         product: product.title,
         group: product.group.name,
         category: product.category?.name ?? "",
-        priceCents: product.priceCents,
+        priceCents: product.priceCents.toString(),
         publicationStatus: product.status,
         yesVotes,
         noVotes,
@@ -374,8 +372,8 @@ export async function buildVotingResultsExportData(
       ...product,
     }));
 
-  const productFeedbackRows: ProductFeedbackExportRow[] =
-    feedbackRowsRaw.map((feedback) => ({
+  const productFeedbackRows: ProductFeedbackExportRow[] = feedbackRowsRaw.map(
+    (feedback) => ({
       feedbackId: feedback.id,
       productId: feedback.productId,
       product: feedback.product.title,
@@ -387,10 +385,11 @@ export async function buildVotingResultsExportData(
       reason: feedback.reason ?? "",
       createdAt: feedback.createdAt,
       updatedAt: feedback.updatedAt,
-    }));
+    }),
+  );
 
-  const featureRatingRows: FeatureRatingExportRow[] =
-    featureRatingRowsRaw.map((rating) => ({
+  const featureRatingRows: FeatureRatingExportRow[] = featureRatingRowsRaw.map(
+    (rating) => ({
       ratingId: rating.id,
       productId: rating.feature.productId,
       product: rating.feature.product.title,
@@ -402,7 +401,8 @@ export async function buildVotingResultsExportData(
       rating: rating.rating,
       createdAt: rating.createdAt,
       updatedAt: rating.updatedAt,
-    }));
+    }),
+  );
 
   const evaluationRatingRows: EvaluationRatingExportRow[] =
     evaluationRatingRowsRaw.map((rating) => ({
