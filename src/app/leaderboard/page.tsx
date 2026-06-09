@@ -127,7 +127,9 @@ function buildOverallLeaderboardRows(
   completionVotes: GroupCompletionVote[],
   eligibleProductsCount: number,
 ): OverallLeaderboardRow[] {
-  const completionVotesByGroupId = buildCompletionVotesByGroupId(completionVotes);
+  const completionVotesByGroupId =
+    buildCompletionVotesByGroupId(completionVotes);
+
   const completionDenominator = Math.max(eligibleProductsCount - 1, 0);
 
   return [...yesRows]
@@ -396,7 +398,6 @@ export default async function LeaderboardPage() {
       : [];
 
   const yesLeaderboardRows = rankYesProducts(products);
-  const podiumProducts = yesLeaderboardRows.slice(0, 3);
   const leadingProduct = yesLeaderboardRows[0];
 
   const overallLeaderboardRows = buildOverallLeaderboardRows(
@@ -405,6 +406,7 @@ export default async function LeaderboardPage() {
     eligibleProducts.length,
   );
 
+  const adjustedPodiumProducts = overallLeaderboardRows.slice(0, 3);
   const overallLeader = overallLeaderboardRows[0];
 
   return (
@@ -428,9 +430,8 @@ export default async function LeaderboardPage() {
                 </h1>
 
                 <p className="max-w-4xl text-base font-medium leading-8 text-slate-600 sm:text-lg">
-                  The original leaderboard ranks products by Yes votes. The new
-                  overall score adds an activity modifier based on how completely
-                  each group participated in the voting process.
+                  The main podium now follows the overall score ranking. The
+                  original leaderboard is still available below for comparison.
                 </p>
               </div>
 
@@ -508,16 +509,19 @@ export default async function LeaderboardPage() {
             <>
               <section className="premium-surface-strong rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
                 <div className="space-y-3">
-                  <p className="premium-kicker">Top 3 · original ranking</p>
+                  <p className="premium-kicker">Top 3 · overall score ranking</p>
                   <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950">
-                    Podium by Yes votes.
+                    Podium by adjusted overall score.
                   </h2>
+                  <p className="max-w-4xl text-sm font-medium leading-7 text-slate-600">
+                    This podium rewards both positive market feedback and active
+                    participation in the voting process.
+                  </p>
                 </div>
 
                 <div className="mt-6 grid gap-5 lg:grid-cols-3">
-                  {podiumProducts.map((product) => {
-                    const rank = product.yesRank;
-                    const yesVotes = product.yesVotes;
+                  {adjustedPodiumProducts.map((product) => {
+                    const rank = product.overallRank;
 
                     return (
                       <article
@@ -534,9 +538,15 @@ export default async function LeaderboardPage() {
                             <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-black text-white shadow-lg shadow-slate-950/20">
                               {getRankLabel(rank)} place
                             </span>
-                            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
-                              {yesVotes} yes vote{yesVotes === 1 ? "" : "s"}
-                            </span>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                              <PositionChangeBadge
+                                change={product.positionChange}
+                              />
+                              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
+                                {formatScore(product.overallScore)} score
+                              </span>
+                            </div>
                           </div>
 
                           <div>
@@ -554,23 +564,47 @@ export default async function LeaderboardPage() {
                           <div className="premium-muted grid grid-cols-2 gap-3 rounded-[1.6rem] p-3.5">
                             <div className="rounded-[1.25rem] border border-white/70 bg-white/70 p-3.5">
                               <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
-                                Price
+                                Yes votes
                               </p>
                               <p className="mt-2 text-base font-black tracking-tight text-slate-950">
-                                {formatPriceFromCents(product.priceCents)}
+                                {product.yesVotes}
                               </p>
                             </div>
 
                             <div className="rounded-[1.25rem] border border-white/70 bg-white/70 p-3.5">
                               <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
-                                Yes share
+                                Modifier
+                              </p>
+                              <p
+                                className={`mt-2 text-base font-black tracking-tight ${
+                                  product.modifier >= 0
+                                    ? "text-emerald-700"
+                                    : "text-rose-700"
+                                }`}
+                              >
+                                {product.modifier >= 0 ? "+" : ""}
+                                {formatScore(product.modifier)}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="premium-muted grid grid-cols-2 gap-3 rounded-[1.6rem] p-3.5">
+                            <div className="rounded-[1.25rem] border border-white/70 bg-white/70 p-3.5">
+                              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                                Completion
                               </p>
                               <p className="mt-2 text-base font-black tracking-tight text-slate-950">
-                                {formatPercentage(
-                                  totalGroups > 0
-                                    ? yesVotes / totalGroups
-                                    : 0,
-                                )}
+                                {formatPercentage(product.completionRate)}
+                              </p>
+                            </div>
+
+                            <div className="rounded-[1.25rem] border border-white/70 bg-white/70 p-3.5">
+                              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                                Votes cast
+                              </p>
+                              <p className="mt-2 text-base font-black tracking-tight text-slate-950">
+                                {product.completionVotes}/
+                                {product.completionDenominator}
                               </p>
                             </div>
                           </div>
