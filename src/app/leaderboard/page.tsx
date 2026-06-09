@@ -4,12 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { getActiveCourseEdition } from "@/lib/active-edition";
 import { formatPriceFromCents } from "@/lib/price";
 
-type RankedProduct = {
+type LeaderboardProduct = {
   id: number;
   title: string;
   priceCents: {
     toString(): string;
   };
+  groupId: number;
+  publishedAt: Date | null;
+  createdAt: Date;
   group: {
     name: string;
   };
@@ -25,31 +28,63 @@ type RankedProduct = {
   }>;
 };
 
-function formatPercentage(yesCount: number, totalGroups: number): string {
-  if (totalGroups <= 0) {
-    return "0%";
-  }
+type GroupCompletionVote = {
+  groupId: number;
+  productId: number;
+  product: {
+    groupId: number;
+  };
+};
 
-  const percentage = (yesCount / totalGroups) * 100;
+type YesLeaderboardRow = LeaderboardProduct & {
+  yesVotes: number;
+  yesRank: number;
+};
 
+type OverallLeaderboardRow = LeaderboardProduct & {
+  yesVotes: number;
+  yesRank: number;
+  overallRank: number;
+  completionVotes: number;
+  completionDenominator: number;
+  completionRate: number;
+  modifier: number;
+  overallScore: number;
+  positionChange: number;
+};
+
+function formatPercentage(value: number): string {
   return (
     new Intl.NumberFormat("en-GB", {
       maximumFractionDigits: 1,
-    }).format(percentage) + "%"
+    }).format(value * 100) + "%"
   );
 }
 
-function rankProducts(products: RankedProduct[]): RankedProduct[] {
-  return [...products].sort((firstProduct, secondProduct) => {
-    const yesVoteDifference =
-      secondProduct.interests.length - firstProduct.interests.length;
+function formatScore(value: number): string {
+  return new Intl.NumberFormat("en-GB", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
 
-    if (yesVoteDifference !== 0) {
-      return yesVoteDifference;
-    }
+function rankYesProducts(products: LeaderboardProduct[]): YesLeaderboardRow[] {
+  return [...products]
+    .map((product) => ({
+      ...product,
+      yesVotes: product.interests.length,
+    }))
+    .sort((firstProduct, secondProduct) => {
+      if (secondProduct.yesVotes !== firstProduct.yesVotes) {
+        return secondProduct.yesVotes - firstProduct.yesVotes;
+      }
 
-    return firstProduct.title.localeCompare(secondProduct.title, "en");
-  });
+      return firstProduct.title.localeCompare(secondProduct.title, "en");
+    })
+    .map((product, index) => ({
+      ...product,
+      yesRank: index + 1,
+    }));
 }
 
 function getRankLabel(rank: number): string {
@@ -66,6 +101,140 @@ function getRankLabel(rank: number): string {
   }
 
   return `${rank}th`;
+}
+
+function buildCompletionVotesByGroupId(
+  votes: GroupCompletionVote[],
+): Map<number, number> {
+  const completionVotesByGroupId = new Map<number, number>();
+
+  for (const vote of votes) {
+    if (vote.groupId === vote.product.groupId) {
+      continue;
+    }
+
+    completionVotesByGroupId.set(
+      vote.groupId,
+      (completionVotesByGroupId.get(vote.groupId) ?? 0) + 1,
+    );
+  }
+
+  return completionVotesByGroupId;
+}
+
+function buildOverallLeaderboardRows(
+  yesRows: YesLeaderboardRow[],
+  completionVotes: GroupCompletionVote[],
+  eligibleProductsCount: number,
+): OverallLeaderboardRow[] {
+  const completionVotesByGroupId = buildCompletionVotesByGroupId(completionVotes);
+  const completionDenominator = Math.max(eligibleProductsCount - 1, 0);
+
+  return [...yesRows]
+    .map((product) => {
+      const rawCompletionVotes =
+        completionVotesByGroupId.get(product.groupId) ?? 0;
+
+      const cappedCompletionVotes =
+        completionDenominator > 0
+          ? Math.min(rawCompletionVotes, completionDenominator)
+          : 0;
+
+      const completionRate =
+        completionDenominator > 0
+          ? cappedCompletionVotes / completionDenominator
+          : 1;
+
+      const modifier = 10 * completionRate - 5;
+      const overallScore = product.yesVotes + modifier;
+
+      return {
+        ...product,
+        overallRank: 0,
+        completionVotes: cappedCompletionVotes,
+        completionDenominator,
+        completionRate,
+        modifier,
+        overallScore,
+        positionChange: 0,
+      };
+    })
+    .sort((firstProduct, secondProduct) => {
+      if (secondProduct.overallScore !== firstProduct.overallScore) {
+        return secondProduct.overallScore - firstProduct.overallScore;
+      }
+
+      if (secondProduct.yesVotes !== firstProduct.yesVotes) {
+        return secondProduct.yesVotes - firstProduct.yesVotes;
+      }
+
+      return firstProduct.title.localeCompare(secondProduct.title, "en");
+    })
+    .map((product, index) => {
+      const overallRank = index + 1;
+
+      return {
+        ...product,
+        overallRank,
+        positionChange: product.yesRank - overallRank,
+      };
+    });
+}
+
+function PositionChangeBadge({ change }: { change: number }) {
+  if (change > 0) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-800">
+        <span aria-hidden="true">▲</span>
+        +{change}
+      </span>
+    );
+  }
+
+  if (change < 0) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-800">
+        <span aria-hidden="true">▼</span>
+        {change}
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-black text-slate-600">
+      —
+    </span>
+  );
+}
+
+function ProductCover({
+  product,
+  className,
+}: {
+  product: LeaderboardProduct;
+  className: string;
+}) {
+  const coverImage = product.images[0];
+
+  return (
+    <Link
+      href={`/catalogo/${product.id}`}
+      className={`${className} block overflow-hidden bg-slate-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80`}
+    >
+      {coverImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={coverImage.imageUrl}
+          alt={coverImage.altText ?? product.title}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-full items-center justify-center px-3 text-center text-xs font-bold text-slate-500">
+          No image
+        </div>
+      )}
+    </Link>
+  );
 }
 
 export default async function LeaderboardPage() {
@@ -102,77 +271,141 @@ export default async function LeaderboardPage() {
     );
   }
 
-  const [products, totalGroups, totalYesVotes] = await Promise.all([
-    prisma.product.findMany({
-      where: {
-        status: "PUBLISHED",
-        group: {
-          editionId: activeEdition.id,
-          isActive: true,
-        },
-      },
-      select: {
-        id: true,
-        title: true,
-        priceCents: true,
-        group: {
-          select: {
-            name: true,
-          },
-        },
-        category: {
-          select: {
-            name: true,
-          },
-        },
-        images: {
-          where: {
-            isCover: true,
-          },
-          select: {
-            imageUrl: true,
-            altText: true,
-          },
-          orderBy: {
-            sortOrder: "asc",
-          },
-          take: 1,
-        },
-        interests: {
-          where: {
-            decision: "YES",
-          },
-          select: {
-            id: true,
-          },
-        },
-      },
-    }),
-
-    prisma.group.count({
-      where: {
-        editionId: activeEdition.id,
-        isActive: true,
-      },
-    }),
-
-    prisma.purchaseInterest.count({
-      where: {
-        decision: "YES",
-        product: {
+  const [products, totalGroups, totalYesVotes, votingSettings] =
+    await Promise.all([
+      prisma.product.findMany({
+        where: {
           status: "PUBLISHED",
           group: {
             editionId: activeEdition.id,
             isActive: true,
           },
         },
-      },
-    }),
-  ]);
+        select: {
+          id: true,
+          title: true,
+          priceCents: true,
+          groupId: true,
+          publishedAt: true,
+          createdAt: true,
+          group: {
+            select: {
+              name: true,
+            },
+          },
+          category: {
+            select: {
+              name: true,
+            },
+          },
+          images: {
+            where: {
+              isCover: true,
+            },
+            select: {
+              imageUrl: true,
+              altText: true,
+            },
+            orderBy: {
+              sortOrder: "asc",
+            },
+            take: 1,
+          },
+          interests: {
+            where: {
+              decision: "YES",
+            },
+            select: {
+              id: true,
+            },
+          },
+        },
+      }),
 
-  const rankedProducts = rankProducts(products);
-  const podiumProducts = rankedProducts.slice(0, 3);
-  const leadingProduct = rankedProducts[0];
+      prisma.group.count({
+        where: {
+          editionId: activeEdition.id,
+          isActive: true,
+        },
+      }),
+
+      prisma.purchaseInterest.count({
+        where: {
+          decision: "YES",
+          product: {
+            status: "PUBLISHED",
+            group: {
+              editionId: activeEdition.id,
+              isActive: true,
+            },
+          },
+        },
+      }),
+
+      prisma.votingSettings.findUnique({
+        where: {
+          editionId: activeEdition.id,
+        },
+        select: {
+          openedAt: true,
+          updatedAt: true,
+        },
+      }),
+    ]);
+
+  const votingOpenedAt =
+    votingSettings?.openedAt ?? votingSettings?.updatedAt ?? new Date();
+
+  const eligibleProducts = products.filter((product) => {
+    const publishedAt = product.publishedAt ?? product.createdAt;
+
+    return publishedAt <= votingOpenedAt;
+  });
+
+  const eligibleProductIds = eligibleProducts.map((product) => product.id);
+
+  const completionVotes =
+    eligibleProductIds.length > 0
+      ? await prisma.purchaseInterest.findMany({
+          where: {
+            productId: {
+              in: eligibleProductIds,
+            },
+            group: {
+              editionId: activeEdition.id,
+              isActive: true,
+            },
+            product: {
+              status: "PUBLISHED",
+              group: {
+                editionId: activeEdition.id,
+                isActive: true,
+              },
+            },
+          },
+          select: {
+            groupId: true,
+            productId: true,
+            product: {
+              select: {
+                groupId: true,
+              },
+            },
+          },
+        })
+      : [];
+
+  const yesLeaderboardRows = rankYesProducts(products);
+  const podiumProducts = yesLeaderboardRows.slice(0, 3);
+  const leadingProduct = yesLeaderboardRows[0];
+
+  const overallLeaderboardRows = buildOverallLeaderboardRows(
+    yesLeaderboardRows,
+    completionVotes,
+    eligibleProducts.length,
+  );
+
+  const overallLeader = overallLeaderboardRows[0];
 
   return (
     <div className="premium-page min-h-screen text-slate-950">
@@ -191,22 +424,32 @@ export default async function LeaderboardPage() {
                 </div>
 
                 <h1 className="text-4xl font-black leading-[0.98] tracking-[-0.06em] text-slate-950 sm:text-5xl lg:text-6xl">
-                  The products receiving the strongest positive group feedback.
+                  Product ranking and voting participation score.
                 </h1>
 
-                <p className="max-w-3xl text-base font-medium leading-8 text-slate-600 sm:text-lg">
-                  Rankings are based on the number of groups that selected Yes
-                  for each published product.
+                <p className="max-w-4xl text-base font-medium leading-8 text-slate-600 sm:text-lg">
+                  The original leaderboard ranks products by Yes votes. The new
+                  overall score adds an activity modifier based on how completely
+                  each group participated in the voting process.
                 </p>
               </div>
 
-              <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 <article className="premium-stat-card rounded-[1.8rem] p-5">
                   <p className="relative z-10 text-sm font-bold text-slate-500">
                     Published products
                   </p>
                   <p className="relative z-10 mt-4 text-4xl font-black tracking-tight text-slate-950">
-                    {rankedProducts.length}
+                    {yesLeaderboardRows.length}
+                  </p>
+                </article>
+
+                <article className="premium-stat-card rounded-[1.8rem] p-5">
+                  <p className="relative z-10 text-sm font-bold text-slate-500">
+                    Eligible products
+                  </p>
+                  <p className="relative z-10 mt-4 text-4xl font-black tracking-tight text-slate-950">
+                    {eligibleProducts.length}
                   </p>
                 </article>
 
@@ -221,26 +464,26 @@ export default async function LeaderboardPage() {
 
                 <article className="premium-stat-card rounded-[1.8rem] p-5">
                   <p className="relative z-10 text-sm font-bold text-slate-500">
-                    Active groups
+                    Original leader
                   </p>
-                  <p className="relative z-10 mt-4 text-4xl font-black tracking-tight text-slate-950">
-                    {totalGroups}
+                  <p className="relative z-10 mt-4 line-clamp-2 text-lg font-black leading-6 tracking-tight text-slate-950">
+                    {leadingProduct?.group.name ?? "No product yet"}
                   </p>
                 </article>
 
                 <article className="premium-stat-card rounded-[1.8rem] p-5">
                   <p className="relative z-10 text-sm font-bold text-slate-500">
-                    Current leader
+                    Overall leader
                   </p>
                   <p className="relative z-10 mt-4 line-clamp-2 text-lg font-black leading-6 tracking-tight text-slate-950">
-                    {leadingProduct?.title ?? "No product yet"}
+                    {overallLeader?.group.name ?? "No product yet"}
                   </p>
                 </article>
               </section>
             </div>
           </div>
 
-          {rankedProducts.length === 0 ? (
+          {yesLeaderboardRows.length === 0 ? (
             <section className="premium-surface-strong rounded-[2.2rem] p-6 text-center sm:p-10 lg:p-12">
               <div className="mx-auto max-w-2xl space-y-5">
                 <p className="premium-kicker justify-center">
@@ -265,63 +508,48 @@ export default async function LeaderboardPage() {
             <>
               <section className="premium-surface-strong rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
                 <div className="space-y-3">
-                  <p className="premium-kicker">Top 3</p>
+                  <p className="premium-kicker">Top 3 · original ranking</p>
                   <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950">
-                    Podium of the most convincing proposals.
+                    Podium by Yes votes.
                   </h2>
                 </div>
 
                 <div className="mt-6 grid gap-5 lg:grid-cols-3">
-                  {podiumProducts.map((product, index) => {
-                    const coverImage = product.images[0];
-                    const rank = index + 1;
-                    const yesVotes = product.interests.length;
+                  {podiumProducts.map((product) => {
+                    const rank = product.yesRank;
+                    const yesVotes = product.yesVotes;
 
                     return (
                       <article
                         key={product.id}
                         className="premium-surface premium-card-hover group overflow-hidden rounded-[2rem]"
                       >
-                        <Link
-                          href={`/catalogo/${product.id}`}
-                          className="block focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
-                        >
-                          <div className="relative aspect-[16/10] overflow-hidden bg-slate-200/80">
-                            {coverImage ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={coverImage.imageUrl}
-                                alt={coverImage.altText ?? product.title}
-                                className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.025]"
-                              />
-                            ) : (
-                              <div className="flex h-full items-center justify-center px-6 text-center text-sm font-bold text-slate-500">
-                                Product image not available yet
-                              </div>
-                            )}
-
-                            <div className="absolute left-4 top-4 rounded-full bg-slate-950 px-3 py-1 text-xs font-black text-white shadow-lg shadow-slate-950/20">
-                              {getRankLabel(rank)} place
-                            </div>
-                          </div>
-                        </Link>
+                        <ProductCover
+                          product={product}
+                          className="relative aspect-[16/10]"
+                        />
 
                         <div className="space-y-5 p-5 sm:p-6">
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-sm font-bold text-slate-500">
-                              Group {product.group.name}
-                            </p>
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-black text-white shadow-lg shadow-slate-950/20">
+                              {getRankLabel(rank)} place
+                            </span>
                             <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
                               {yesVotes} yes vote{yesVotes === 1 ? "" : "s"}
                             </span>
                           </div>
 
-                          <Link
-                            href={`/catalogo/${product.id}`}
-                            className="block text-2xl font-black tracking-[-0.045em] text-slate-950 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
-                          >
-                            {product.title}
-                          </Link>
+                          <div>
+                            <p className="text-sm font-bold text-slate-500">
+                              Group {product.group.name}
+                            </p>
+                            <Link
+                              href={`/catalogo/${product.id}`}
+                              className="mt-2 block text-2xl font-black tracking-[-0.045em] text-slate-950 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
+                            >
+                              {product.title}
+                            </Link>
+                          </div>
 
                           <div className="premium-muted grid grid-cols-2 gap-3 rounded-[1.6rem] p-3.5">
                             <div className="rounded-[1.25rem] border border-white/70 bg-white/70 p-3.5">
@@ -338,7 +566,11 @@ export default async function LeaderboardPage() {
                                 Yes share
                               </p>
                               <p className="mt-2 text-base font-black tracking-tight text-slate-950">
-                                {formatPercentage(yesVotes, totalGroups)}
+                                {formatPercentage(
+                                  totalGroups > 0
+                                    ? yesVotes / totalGroups
+                                    : 0,
+                                )}
                               </p>
                             </div>
                           </div>
@@ -349,62 +581,33 @@ export default async function LeaderboardPage() {
                 </div>
               </section>
 
-              <section className="premium-surface-strong rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
-                <div className="space-y-3">
-                  <p className="premium-kicker">Full ranking</p>
-                  <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950">
-                    Complete leaderboard.
-                  </h2>
-                </div>
+              <section className="grid gap-6 xl:grid-cols-2 xl:items-start">
+                <section className="premium-surface-strong rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
+                  <div className="space-y-3">
+                    <p className="premium-kicker">Original leaderboard</p>
+                    <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950">
+                      Ranking by Yes votes.
+                    </h2>
+                    <p className="text-sm font-medium leading-7 text-slate-600">
+                      This is the existing leaderboard. It ranks products only
+                      by the number of groups that selected Yes.
+                    </p>
+                  </div>
 
-                <div className="mt-6 space-y-4">
-                  {rankedProducts.map((product, index) => {
-                    const coverImage = product.images[0];
-                    const rank = index + 1;
-                    const yesVotes = product.interests.length;
-
-                    return (
-                      <article
-                        key={product.id}
-                        className="premium-muted grid gap-4 rounded-[1.9rem] p-4 md:grid-cols-[92px_minmax(0,1fr)_minmax(280px,340px)] md:items-center"
-                      >
-                        <div className="flex items-center gap-3 md:block">
-                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-lg font-black text-white shadow-lg shadow-slate-950/15">
-                            {rank}
+                  <div className="mt-6 space-y-4">
+                    {yesLeaderboardRows.map((product) => {
+                      return (
+                        <article
+                          key={product.id}
+                          className="premium-muted grid gap-4 rounded-[1.9rem] p-4 md:grid-cols-[64px_minmax(0,1fr)_minmax(160px,190px)] md:items-center"
+                        >
+                          <div className="flex items-center gap-3 md:block">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-base font-black text-white shadow-lg shadow-slate-950/15">
+                              {product.yesRank}
+                            </div>
                           </div>
-                          <p className="text-sm font-black text-slate-600 md:mt-2 md:text-center">
-                            Rank
-                          </p>
-                        </div>
-
-                        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
-                          <Link
-                            href={`/catalogo/${product.id}`}
-                            className="block h-24 w-full shrink-0 overflow-hidden rounded-2xl bg-slate-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80 sm:w-36"
-                          >
-                            {coverImage ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={coverImage.imageUrl}
-                                alt={coverImage.altText ?? product.title}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full items-center justify-center px-3 text-center text-xs font-bold text-slate-500">
-                                No image
-                              </div>
-                            )}
-                          </Link>
 
                           <div className="min-w-0 space-y-2">
-                            <div className="flex flex-wrap gap-2">
-                              {product.category ? (
-                                <span className="premium-chip rounded-full px-3 py-1 text-xs font-black text-slate-700">
-                                  {product.category.name}
-                                </span>
-                              ) : null}
-                            </div>
-
                             <p className="text-sm font-bold text-slate-500">
                               Group {product.group.name}
                             </p>
@@ -414,41 +617,134 @@ export default async function LeaderboardPage() {
                             >
                               {product.title}
                             </Link>
-                          </div>
-                        </div>
-
-                        <div className="grid gap-3 sm:grid-cols-3">
-                          <div className="rounded-2xl border border-white/70 bg-white/76 p-4">
-                            <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
-                              Yes votes
-                            </p>
-                            <p className="mt-2 text-lg font-black tracking-tight text-slate-950">
-                              {yesVotes}
-                            </p>
+                            {product.category ? (
+                              <span className="premium-chip inline-flex rounded-full px-3 py-1 text-xs font-black text-slate-700">
+                                {product.category.name}
+                              </span>
+                            ) : null}
                           </div>
 
-                          <div className="rounded-2xl border border-white/70 bg-white/76 p-4">
-                            <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
-                              Yes share
-                            </p>
-                            <p className="mt-2 text-lg font-black tracking-tight text-slate-950">
-                              {formatPercentage(yesVotes, totalGroups)}
-                            </p>
+                          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-1">
+                            <div className="rounded-2xl border border-white/70 bg-white/76 p-4">
+                              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                                Yes votes
+                              </p>
+                              <p className="mt-2 text-lg font-black tracking-tight text-slate-950">
+                                {product.yesVotes}
+                              </p>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <section className="premium-surface-strong rounded-[2.2rem] p-5 sm:p-7 lg:p-8">
+                  <div className="space-y-3">
+                    <p className="premium-kicker">Overall score leaderboard</p>
+                    <h2 className="text-3xl font-black tracking-[-0.045em] text-slate-950">
+                      Ranking with participation modifier.
+                    </h2>
+                    <p className="text-sm font-medium leading-7 text-slate-600">
+                      Overall score = Yes votes + modifier. Modifier = 10 ×
+                      completion rate − 5. Completion rate counts both Yes and
+                      No group votes on eligible products.
+                    </p>
+                  </div>
+
+                  <div className="mt-6 space-y-4">
+                    {overallLeaderboardRows.map((product) => {
+                      return (
+                        <article
+                          key={product.id}
+                          className="premium-muted rounded-[1.9rem] p-4"
+                        >
+                          <div className="grid gap-4 md:grid-cols-[64px_minmax(0,1fr)_minmax(200px,240px)] md:items-center">
+                            <div className="flex items-center gap-3 md:block">
+                              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-base font-black text-white shadow-lg shadow-slate-950/15">
+                                {product.overallRank}
+                              </div>
+                            </div>
+
+                            <div className="min-w-0 space-y-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-sm font-bold text-slate-500">
+                                  Group {product.group.name}
+                                </p>
+                                <PositionChangeBadge
+                                  change={product.positionChange}
+                                />
+                              </div>
+
+                              <Link
+                                href={`/catalogo/${product.id}`}
+                                className="block truncate text-xl font-black tracking-[-0.04em] text-slate-950 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/80"
+                              >
+                                {product.title}
+                              </Link>
+                            </div>
+
+                            <div className="rounded-2xl border border-white/70 bg-white/76 p-4">
+                              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                                Overall score
+                              </p>
+                              <p className="mt-2 text-lg font-black tracking-tight text-slate-950">
+                                {formatScore(product.overallScore)}
+                              </p>
+                            </div>
                           </div>
 
-                          <div className="rounded-2xl border border-white/70 bg-white/76 p-4">
-                            <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
-                              Price
-                            </p>
-                            <p className="mt-2 text-lg font-black tracking-tight text-slate-950">
-                              {formatPriceFromCents(product.priceCents)}
-                            </p>
+                          <div className="mt-4 grid gap-3 sm:grid-cols-4">
+                            <div className="rounded-2xl border border-white/70 bg-white/76 p-4">
+                              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                                Yes votes
+                              </p>
+                              <p className="mt-2 text-lg font-black tracking-tight text-slate-950">
+                                {product.yesVotes}
+                              </p>
+                            </div>
+
+                            <div className="rounded-2xl border border-white/70 bg-white/76 p-4">
+                              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                                Modifier
+                              </p>
+                              <p
+                                className={`mt-2 text-lg font-black tracking-tight ${
+                                  product.modifier >= 0
+                                    ? "text-emerald-700"
+                                    : "text-rose-700"
+                                }`}
+                              >
+                                {product.modifier >= 0 ? "+" : ""}
+                                {formatScore(product.modifier)}
+                              </p>
+                            </div>
+
+                            <div className="rounded-2xl border border-white/70 bg-white/76 p-4">
+                              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                                Completion
+                              </p>
+                              <p className="mt-2 text-lg font-black tracking-tight text-slate-950">
+                                {formatPercentage(product.completionRate)}
+                              </p>
+                            </div>
+
+                            <div className="rounded-2xl border border-white/70 bg-white/76 p-4">
+                              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                                Votes cast
+                              </p>
+                              <p className="mt-2 text-lg font-black tracking-tight text-slate-950">
+                                {product.completionVotes}/
+                                {product.completionDenominator}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
               </section>
             </>
           )}

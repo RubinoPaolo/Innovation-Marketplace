@@ -94,6 +94,7 @@ model Product {
   description            String?
   priceCents             Decimal                 @db.Decimal(65, 0)
   status                 String                  @default("DRAFT")
+  publishedAt            DateTime?
   group                  Group                   @relation(fields: [groupId], references: [id], onDelete: Cascade)
   category               Category?               @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   images                 ProductImage[]
@@ -106,6 +107,7 @@ model Product {
 
   @@index([categoryId])
   @@index([status])
+  @@index([publishedAt])
 }
 
 model ProductImage {
@@ -238,6 +240,7 @@ model VotingSettings {
   editionId Int?           @unique
   edition   CourseEdition? @relation(fields: [editionId], references: [id], onDelete: Cascade)
   isOpen    Boolean         @default(false)
+  openedAt  DateTime?
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 }

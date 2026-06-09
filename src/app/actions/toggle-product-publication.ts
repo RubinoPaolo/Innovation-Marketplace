@@ -17,7 +17,8 @@ export async function toggleProductPublication(
   if (!currentSession) {
     return {
       status: "error",
-      message: "Your session is no longer valid. Return to the homepage and sign in again.",
+      message:
+        "Your session is no longer valid. Return to the homepage and sign in again.",
     };
   }
 
@@ -29,6 +30,7 @@ export async function toggleProductPublication(
       id: true,
       status: true,
       title: true,
+      publishedAt: true,
     },
   });
 
@@ -40,6 +42,7 @@ export async function toggleProductPublication(
   }
 
   const nextStatus = product.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
+  const isPublishing = nextStatus === "PUBLISHED";
 
   await prisma.product.update({
     where: {
@@ -47,12 +50,17 @@ export async function toggleProductPublication(
     },
     data: {
       status: nextStatus,
+      publishedAt:
+        isPublishing && product.publishedAt === null
+          ? new Date()
+          : product.publishedAt,
     },
   });
 
   revalidatePath("/area-gruppo");
   revalidatePath("/area-gruppo/media");
   revalidatePath("/catalogo");
+  revalidatePath("/leaderboard");
 
   return {
     status: "success",

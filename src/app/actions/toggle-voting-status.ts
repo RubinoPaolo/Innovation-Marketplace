@@ -43,6 +43,7 @@ export async function toggleVotingStatus(
     select: {
       id: true,
       isOpen: true,
+      openedAt: true,
     },
   });
 
@@ -51,6 +52,7 @@ export async function toggleVotingStatus(
       data: {
         editionId: activeEdition.id,
         isOpen: true,
+        openedAt: new Date(),
       },
       select: {
         isOpen: true,
@@ -69,12 +71,18 @@ export async function toggleVotingStatus(
     };
   }
 
+  const nextIsOpen = !currentSettings.isOpen;
+
   const updatedSettings = await prisma.votingSettings.update({
     where: {
       id: currentSettings.id,
     },
     data: {
-      isOpen: !currentSettings.isOpen,
+      isOpen: nextIsOpen,
+      openedAt:
+        nextIsOpen && currentSettings.openedAt === null
+          ? new Date()
+          : currentSettings.openedAt,
     },
     select: {
       isOpen: true,
